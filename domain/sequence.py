@@ -7,6 +7,8 @@ class Label(Enum):
     INNER = 2
     TRANS_MEMBRANE = 3
     OUTER = 4
+    UNLABELED = 5
+    PANIEK = 6
 
 
 @dataclass

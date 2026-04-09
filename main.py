@@ -1,10 +1,10 @@
-from utils.csv_reader import collect_data
+from utils.csv_reader import collect_data, find_protein_names
 
 
 def main():
     print("Hello from bioinformatics project!")
 
-    protein_names: list[str] = ["a", "b", "c"]
+    protein_names: list[str] = find_protein_names("data/proteins/")
 
     data = collect_data(protein_names)
 

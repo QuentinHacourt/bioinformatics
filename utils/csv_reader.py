@@ -1,15 +1,16 @@
-# import pandas as pd
-# import numpy as np
-# from domain.beta_strand import Interval, BetaStrand
-
-# from domain.protein import Protein
-import xml.etree.ElementTree as xml
-
-from domain.sequence import Protein, Segment
+import xml.etree.ElementTree as et
+from domain.sequence import Protein, Segment, Label
+import os
 
 
-def normalize_data() -> None:
-    print("lmao")
+def find_protein_names(path):
+    names: list[str] = []
+    obj = os.scandir(path)
+    for entry in obj:
+        if entry.is_file() and entry.name.endswith(".xml"):
+            names.append(entry.name[:-4])
+
+    return names
 
 
 def collect_data(protein_names: list[str]) -> list[Protein]:
@@ -26,11 +27,70 @@ def collect_data(protein_names: list[str]) -> list[Protein]:
 
 
 def find_sequence(protein_name: str) -> str:
+    path = f"data/proteins/{protein_name}.xml"
+    tree = et.parse(path)
+    root = tree.getroot()
+    namespaces = {"ns": "https://pdbtm.unitmp.org"}
+
+    chain = root.find("ns:CHAIN", namespaces=namespaces)
+
+    if chain is None:
+        return ""
+
+    print(chain)
+    sequence = chain.find("ns:SEQ", namespaces)
+    if sequence is not None and sequence.text:
+        return sequence.text.strip()
+
     return ""
 
 
 def find_segments(protein_name: str) -> list[Segment]:
-    return []
+    path = f"data/proteins/{protein_name}.xml"
+    tree = et.parse(path)
+    root = tree.getroot()
+    namespaces = {"ns": "https://pdbtm.unitmp.org"}
+
+    chain = root.find("ns:CHAIN", namespaces=namespaces)
+
+    if chain is None:
+        return []
+
+    regions = chain.findall("ns:REGION", namespaces=namespaces)
+
+    segments: list[Segment] = []
+
+    for region in regions:
+        begin: int = int(region.get("seq_beg") or -1)
+        end: int = int(region.get("seq_end") or -1)
+        # 1 = in
+        # 2 = out
+        # B = tm
+        # U = unlabled
+        # I = beta barrel inside -> tm
+
+        type: str = str(region.get("type"))
+        label: Label
+
+        match type:
+            case "1":
+                label = Label.INNER
+            case "2":
+                label = Label.OUTER
+            case "B":
+                label = Label.TRANS_MEMBRANE
+            case "U":
+                label = Label.UNLABELED
+            case "I":
+                label = Label.TRANS_MEMBRANE
+            case _:
+                label = Label.PANIEK
+                print("paniek.jpg")
+
+        segment: Segment = Segment(label=label, begin=begin, end=end)
+        segments.append(segment)
+
+    return segments
 
 
 # def read_aminoacid_sequence():
