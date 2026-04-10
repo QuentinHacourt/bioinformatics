@@ -1,6 +1,11 @@
 from utils.csv_reader import collect_data, find_protein_names, remove_unlabeled
 from domain.sequence import Protein
-from utils.stats import label_frequencies, transition_distribution
+import numpy as np
+from utils.stats import (
+    label_frequencies,
+    observation_distribution,
+    transition_distribution,
+)
 
 
 def main():
@@ -27,7 +32,12 @@ def main():
     data = collect_data(protein_names=protein_names)
     data = remove_unlabeled(data)
 
+    # TODO: het klopt langs geen kant, som rij moet 1 zijn
     tm = transition_distribution(data)
+    # TODO: het klopt langs geen kant, som rij moet 1 zijn
+    od = observation_distribution(data)
+
+    print(tm.sum(axis=1))
 
 
 if __name__ == "__main__":

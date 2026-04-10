@@ -36,6 +36,7 @@ def test():
 
     model.fit(X_train)
 
+    # TODO: observation matrix
     exam_observations = [[0, 1, 2]]
     predicted_states = model.predict(X=[[0, 1, 2]])
     print(

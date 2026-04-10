@@ -34,18 +34,43 @@ def transition_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
     for protein in proteins:
         totalcount += len(protein.sequence)
 
-        for i in range(1, len(protein.sequence) - 1):
+        for i in range(0, len(protein.sequence) - 1):
             from_label: Label = find_label(i, protein)
             to_label: Label = find_label(i + 1, protein)
             from_index: int = label_to_index(from_label)
             to_index: int = label_to_index(to_label)
             m[from_index][to_index] += 1
 
+    transition_matrix = m / totalcount
+    return transition_matrix
+
+
+def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
+    m: npt.NDArray[np.float64] = np.zeros((3, 25))
+    totalcount: dict[str, int] = {}
+
+    for protein in proteins:
+        for i in range(0, len(protein.sequence) - 1):
+            character: str = protein.sequence[i]
+            label: Label = find_label(i, protein)
+            label_index = label_to_index(label)
+            char_index = char_to_index(character)
+            m[label_index][char_index] += 1
+
+            if character in totalcount:
+                totalcount[character] += 1
+            else:
+                totalcount[character] = 1
+
     print(totalcount)
     print(m)
-    transition_matrix = m / totalcount
-    print(transition_matrix)
-    return transition_matrix
+
+    for k in totalcount:
+        i = char_to_index(k)
+        m[:, i] = m[:, i] / totalcount[k]
+
+    print(m)
+    return m
 
 
 def find_label(index, protein: Protein) -> Label:
@@ -66,3 +91,7 @@ def label_to_index(label: Label) -> int:
             return 2
         case _:
             return -1
+
+
+def char_to_index(character: str) -> int:
+    return ord(character) - ord("A")
