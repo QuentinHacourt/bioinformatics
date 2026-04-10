@@ -19,7 +19,7 @@ class Segment:
         self.end = end
 
     def __repr__(self) -> str:
-        return f"label: {self.label}, begin: {self.begin}, end: {self.end}"
+        return f"(label: {self.label}, begin: {self.begin}, end: {self.end})"
 
 
 @dataclass
