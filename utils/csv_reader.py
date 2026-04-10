@@ -26,6 +26,31 @@ def collect_data(protein_names: list[str]) -> list[Protein]:
     return proteins
 
 
+def remove_unlabeled(proteins: list[Protein]) -> list[Protein]:
+    offset: int = 0
+    for protein in proteins:
+        for segment in protein.segments[:]:
+            if segment.label == Label.UNLABELED:
+                begin: int = segment.begin - 1 - offset
+                end: int = segment.end - offset
+
+                # remove from original list
+                protein.segments.remove(segment)
+
+                # update sequence
+                front: str = protein.sequence[:begin]
+                back: str = protein.sequence[end:]
+                protein.sequence = front + back
+
+                # update sequence
+                offset += end - begin
+            else:
+                segment.begin = segment.begin - offset
+                segment.end = segment.end - offset
+
+    return proteins
+
+
 def find_sequence(protein_name: str) -> str:
     path = f"data/proteins/{protein_name}.xml"
     tree = et.parse(path)
@@ -39,7 +64,7 @@ def find_sequence(protein_name: str) -> str:
 
     sequence = chain.find("ns:SEQ", namespaces)
     if sequence is not None and sequence.text:
-        return sequence.text.replace(" ","")
+        return sequence.text.replace(" ", "")
 
     return ""
 
