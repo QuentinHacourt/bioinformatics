@@ -41,8 +41,10 @@ def transition_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
             to_index: int = label_to_index(to_label)
             m[from_index][to_index] += 1
 
-    transition_matrix = m / totalcount
-    return transition_matrix
+    #transition_matrix = m / totalcount
+    for i in range(0, 3):
+        m[i] = m[i]/m[i].sum()
+    return m
 
 
 def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
@@ -65,9 +67,13 @@ def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]
     print(totalcount)
     print(m)
 
-    for k in totalcount:
-        i = char_to_index(k)
-        m[:, i] = m[:, i] / totalcount[k]
+    for i in range(0, 3):
+        m[i] = m[i]/m[i].sum()
+
+
+    # for k in totalcount:
+    #     i = char_to_index(k)
+    #     m[:, i] = m[:, i] / totalcount[k]
 
     print(m)
     return m

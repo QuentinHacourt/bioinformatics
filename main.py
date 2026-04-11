@@ -32,12 +32,12 @@ def main():
     data = collect_data(protein_names=protein_names)
     data = remove_unlabeled(data)
 
-    # TODO: het klopt langs geen kant, som rij moet 1 zijn
     tm = transition_distribution(data)
-    # TODO: het klopt langs geen kant, som rij moet 1 zijn
+  
     od = observation_distribution(data)
 
     print(tm.sum(axis=1))
+    print(od.sum(axis=1))
 
 
 if __name__ == "__main__":
