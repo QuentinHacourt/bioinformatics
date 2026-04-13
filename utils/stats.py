@@ -3,7 +3,8 @@ import numpy as np
 import numpy.typing as npt
 
 
-def label_frequencies(proteins: list[Protein]) -> dict[Label, float]:
+# TODO: skip dictionary and put results in list directly
+def label_frequencies(proteins: list[Protein]) -> list[float]:
     dictionary: dict[Label, float] = {
         Label.INNER: 0,
         Label.OUTER: 0,
@@ -20,11 +21,13 @@ def label_frequencies(proteins: list[Protein]) -> dict[Label, float]:
                 length: int = segment.end - segment.begin + 1
                 totalLength += length
                 dictionary[segment.label] = dictionary[segment.label] + length
-    print(dictionary)
-    print(totalLength)
     dictionary = {key: value / totalLength for key, value in dictionary.items()}
-    print(dictionary)
-    return dictionary
+
+    return [
+        dictionary[Label.INNER],
+        dictionary[Label.TRANS_MEMBRANE],
+        dictionary[Label.OUTER],
+    ]
 
 
 def transition_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
@@ -41,9 +44,9 @@ def transition_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
             to_index: int = label_to_index(to_label)
             m[from_index][to_index] += 1
 
-    #transition_matrix = m / totalcount
+    # transition_matrix = m / totalcount
     for i in range(0, 3):
-        m[i] = m[i]/m[i].sum()
+        m[i] = m[i] / m[i].sum()
     return m
 
 
@@ -64,18 +67,9 @@ def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]
             else:
                 totalcount[character] = 1
 
-    print(totalcount)
-    print(m)
-
     for i in range(0, 3):
-        m[i] = m[i]/m[i].sum()
+        m[i] = m[i] / m[i].sum()
 
-
-    # for k in totalcount:
-    #     i = char_to_index(k)
-    #     m[:, i] = m[:, i] / totalcount[k]
-
-    print(m)
     return m
 
 
