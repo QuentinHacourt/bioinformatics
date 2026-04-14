@@ -3,6 +3,17 @@ import numpy as np
 import numpy.typing as npt
 
 
+def initial_distribution(proteins: list[Protein]) -> list[float]:
+    labels: list[float] = [0, 0, 0]
+
+    for protein in proteins:
+        label = find_label(0, protein)
+        index = label_to_index(label)
+        labels[index] += 1
+
+    return [i / len(proteins) for i in labels]
+
+
 # TODO: skip dictionary and put results in list directly
 def label_frequencies(proteins: list[Protein]) -> list[float]:
     dictionary: dict[Label, float] = {
@@ -37,7 +48,7 @@ def transition_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
     for protein in proteins:
         totalcount += len(protein.sequence)
 
-        for i in range(0, len(protein.sequence) - 1):
+        for i in range(len(protein.sequence) - 1):
             from_label: Label = find_label(i, protein)
             to_label: Label = find_label(i + 1, protein)
             from_index: int = label_to_index(from_label)
@@ -55,7 +66,7 @@ def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]
     totalcount: dict[str, int] = {}
 
     for protein in proteins:
-        for i in range(0, len(protein.sequence) - 1):
+        for i in range(len(protein.sequence)):
             character: str = protein.sequence[i]
             label: Label = find_label(i, protein)
             label_index = label_to_index(label)
@@ -95,3 +106,9 @@ def label_to_index(label: Label) -> int:
 
 def char_to_index(character: str) -> int:
     return ord(character) - ord("A")
+
+
+def conditional_maximum_likelihood(transition_matrix: list[list[float]]) -> int:
+    res: int = 0
+
+    return res

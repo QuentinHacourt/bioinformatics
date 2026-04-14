@@ -30,7 +30,7 @@ def remove_unlabeled(proteins: list[Protein]) -> list[Protein]:
     offset: int = 0
     for protein in proteins:
         for segment in protein.segments[:]:
-            if segment.label == Label.UNLABELED:
+            if segment.label == Label.UNLABELED or segment.label == Label.SIGNAL:
                 begin: int = segment.begin - 1 - offset
                 end: int = segment.end - offset
 

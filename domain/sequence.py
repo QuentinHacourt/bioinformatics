@@ -3,12 +3,11 @@ from enum import Enum
 
 
 class Label(Enum):
-    SIGNAL = 1
+    INNER = 1
+    TRANS_MEMBRANE = 2
+    OUTER = 3
 
-    INNER = 2
-    TRANS_MEMBRANE = 3
-    OUTER = 4
-
+    SIGNAL = 4
     UNLABELED = 5
     PANIEK = 6
 

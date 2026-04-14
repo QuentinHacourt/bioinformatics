@@ -3,9 +3,9 @@ from domain.sequence import Protein
 import numpy as np
 from utils.stats import (
     char_to_index,
-    label_frequencies,
     observation_distribution,
     transition_distribution,
+    initial_distribution,
 )
 from hmm.hidden_markov_model import test
 
@@ -33,23 +33,42 @@ def main():
     data = collect_data(protein_names=protein_names)
     data = remove_unlabeled(data)
 
-    id = label_frequencies(data)
+    id = initial_distribution(data)
 
     tm = transition_distribution(data)
+    print(tm)
 
     od = observation_distribution(data)
 
     test_protein_names = ["2FCP"]
     test_data = collect_data(test_protein_names)
+    test_data = remove_unlabeled(test_data)
 
     # print(tm.sum(axis=1))
     # print(od.sum(axis=1))
 
-    t = test_data[0].sequence
+    training_set = []
 
-    t = [char_to_index(i) for i in t]
+    for protein in data:
+        training_set.append([char_to_index(i) for i in protein.sequence])
 
-    test(id, tm, od, t)
+    test_set = test_data[0].sequence
+
+    test_set = [char_to_index(i) for i in test_set]
+
+    # print(training_set)
+
+    print(id)
+
+    res = test(id, tm, od, test_set)
+    print("ORIGINAL MATRIX")
+    print(res)
+
+    tm_debug = np.array([[0.5, 0.5, 0], [0.2, 0.6, 0.2], [0, 0.5, 0.5]])
+
+    res = test(id, tm_debug, od, test_set)
+    print("DEBUG MATRIX")
+    print(res)
 
 
 if __name__ == "__main__":
