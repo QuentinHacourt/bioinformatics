@@ -1,8 +1,8 @@
 from utils.csv_reader import collect_data, find_protein_names, remove_unlabeled
 from domain.sequence import Protein
+from domain.amino_acid import find_indices, find_index
 import numpy as np
 from utils.stats import (
-    char_to_index,
     observation_distribution,
     transition_distribution,
     initial_distribution,
@@ -50,11 +50,11 @@ def main():
     training_set = []
 
     for protein in data:
-        training_set.append([char_to_index(i) for i in protein.sequence])
+        training_set.append([find_index(i) for i in protein.sequence])
 
     test_set = test_data[0].sequence
 
-    test_set = [char_to_index(i) for i in test_set]
+    test_set = [find_index(i) for i in test_set]
 
     # print(training_set)
 

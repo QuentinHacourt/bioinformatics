@@ -1,7 +1,7 @@
 from domain.sequence import Label, Protein
+from domain.amino_acid import find_index
 import numpy as np
 import numpy.typing as npt
-
 
 def initial_distribution(proteins: list[Protein]) -> list[float]:
     labels: list[float] = [0, 0, 0]
@@ -70,7 +70,7 @@ def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]
             character: str = protein.sequence[i]
             label: Label = find_label(i, protein)
             label_index = label_to_index(label)
-            char_index = char_to_index(character)
+            char_index = find_index(character)
             m[label_index][char_index] += 1
 
             if character in totalcount:
@@ -82,7 +82,6 @@ def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]
         m[i] = m[i] / m[i].sum()
 
     return m
-
 
 def find_label(index, protein: Protein) -> Label:
     for segment in protein.segments:
@@ -103,9 +102,6 @@ def label_to_index(label: Label) -> int:
         case _:
             return -1
 
-
-def char_to_index(character: str) -> int:
-    return ord(character) - ord("A")
 
 
 def conditional_maximum_likelihood(transition_matrix: list[list[float]]) -> int:
