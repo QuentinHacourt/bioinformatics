@@ -1,0 +1,128 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Journal Article
+% LaTeX Template
+% Version 2.0 (February 7, 2023)
+%
+% This template originates from:
+% https://www.LaTeXTemplates.com
+%
+% Author:
+% Vel (vel@latextemplates.com)
+%
+% License:
+% CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+%
+% NOTE: The bibliography needs to be compiled using the biber engine.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+	a4paper, % Paper size, use either a4paper or letterpaper
+	11pt, % Default font size, can also use 11pt or 12pt, although this is not recommended
+	unnumberedsections, % Comment to enable section numbering
+	twoside, % Two side traditional mode where headers and footers change between odd and even pages, comment this option to make them fixed
+]{LTJournalArticle}
+
+\addbibresource{sample.bib} % BibLaTeX bibliography file
+
+%\runninghead{Shortened Running Article Title} % A shortened article title to appear in the running head, leave this command empty for no running head
+
+%\footertext{\textit{}} % Text to appear in the footer, leave this command empty for no footer text
+
+\setcounter{page}{1} % The page number of the first page, set this to a higher number if the article is to be part of an issue or larger work
+\usepackage{float}
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\title{A Hidden Markov Model method, capable of predicting and discriminating $\beta$-barrel outer membrane proteins} % Article title, use manual lines breaks (\\) to beautify the layout
+
+% Authors are listed in a comma-separated list with superscript numbers indicating affiliations
+% \thanks{} is used for any text that should be placed in a footnote on the first page, such as the corresponding author's email, journal acceptance dates, a copyright/license notice, keywords, etc
+\author{%
+	Quentin Hacourt and Nerissa Janssens
+}
+
+% Affiliations are output in the \date{} command
+\date{\footnotesize Departement of Computer Science, Vrije Universiteit Brussel\\}
+
+% Full-width abstract
+\renewcommand{\maketitlehookd}{%
+	\begin{abstract}
+		\noindent 
+	\end{abstract}
+}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+\nocite{*}
+\maketitle % Output the title section
+
+%----------------------------------------------------------------------------------------
+%	ARTICLE CONTENTS
+%----------------------------------------------------------------------------------------
+
+\section{Introduction}
+
+\section{Materials and Methods}
+
+\subsection{Training and Test Data}
+
+\begin{table*}
+	\caption{The dataset of outer membrane proteins used for training and testing of the Hidden Markov Model~\cite{bagos_hidden_2004}}
+	\centering
+	\begin{tabular}{L{0.3\linewidth} L{0.2\linewidth} L{0.1\linewidth}L{0.3\linewidth}L{0.3\linewidth}L{0.4\linewidth}} 
+        \toprule
+        Name          & Number of $\beta$-strands & PDB code & Organism               \\ \midrule
+        OmpA          & 8                         & 1QJP     & Escherichia coli       \\
+        OmpX          & 8                         & 1QJ8     & Escherichia coli       \\
+        OmpT          & 10                        & 1I78     & Escherichia coli       \\
+        OpcA          & 10                        & 1K24     & Neisseria Meningitidis \\
+        OmpLA         & 12                        & 1QD5     & Escherichia coli       \\
+        Omp32         & 16                        & 1E54     & Comamonas Acidovorans  \\
+        OmpF          & 16                        & 2OMF     & Escherichia coli       \\
+        Porin         & 16                        & 2POR     & Rhodobacter capsulatus \\
+        Porin         & 16                        & 1PRN     & Rhodobacter blasticus  \\
+        Sucrose porin & 18                        & 1A0S     & Salmonella typhimurium \\
+        Maltoporin    & 18                        & 2MPR     & Salmonella typhimurium \\
+        FepA          & 22                        & 1FEP     & Escherichia coli       \\
+        FhuA          & 22                        & 2FCP     & Escherichia coli       \\
+        FecA          & 22                        & 1KMO     & Escherichia coli       \\
+        \bottomrule
+    \end{tabular}
+	\label{tab:dataset}
+\end{table*}
+
+\subsection{Hidden Markov Model}
+
+\begin{figure} % Single column figure
+	\includegraphics[width=\linewidth]{hmm_sub.png}
+	\caption{Visual simplified representation of HMM. This HMM consists of three submodels that each models a certain part of the protein sequence.}
+	\label{fig:sub}
+\end{figure}
+
+\subsubsection{Training} 
+\subsubsection{Decoding}
+
+%------------------------------------------------
+
+\section{Results}
+
+%------------------------------------------------
+
+\section{Discussion}
+
+%----------------------------------------------------------------------------------------
+%	 REFERENCES
+%----------------------------------------------------------------------------------------
+
+\printbibliography% Output the bibliography
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
