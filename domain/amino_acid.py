@@ -1,5 +1,6 @@
 amino_acids: list[str] = list('ACDEFGHIKLMNPQRSTVWY')
 amino_acid_to_index: dict[str, int] = {aa: i for i, aa in enumerate(amino_acids)}
+nb_of_amino_acid: int = len(amino_acids)
 
 def find_index(amino_acid: str) -> int:
     return amino_acid_to_index[amino_acid]

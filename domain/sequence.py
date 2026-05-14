@@ -25,12 +25,13 @@ class Segment:
 
 @dataclass
 class Protein:
-    def __init__(self, name: str, sequence: str, segments: list[Segment]) -> None:
+    def __init__(self, name: str, sequence: str, segments: list[Segment], annotated_sequence: str) -> None:
         self.name = name
         self.sequence = sequence
         self.segments = segments
+        self.annotated_sequence = annotated_sequence
 
     def __repr__(self) -> str:
         return (
-            f"name: {self.name}, sequence: {self.sequence}, segments: {self.segments}"
+            f"name: {self.name}, sequence: {self.sequence}, segments: {self.segments}, annotated_sequence: {self.annotated_sequence}"
         )

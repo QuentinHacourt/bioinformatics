@@ -1,5 +1,5 @@
 from domain.sequence import Label, Protein
-from domain.amino_acid import find_index
+from domain.amino_acid import find_index, nb_of_amino_acid
 import numpy as np
 import numpy.typing as npt
 
@@ -62,7 +62,7 @@ def transition_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
 
 
 def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
-    m: npt.NDArray[np.float64] = np.zeros((3, 25))
+    m: npt.NDArray[np.float64] = np.zeros((3, nb_of_amino_acid))
     totalcount: dict[str, int] = {}
 
     for protein in proteins:
