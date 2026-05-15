@@ -1,107 +1,120 @@
-import pandas as pd
+import domain.amino_acid as aa
 import numpy as np
+from scipy.special import logsumexp
+from domain.state.state import State
 
-# Source: https://adeveloperdiary.com/data-science/machine-learning/derivation-and-implementation-of-baum-welch-algorithm-for-hidden-markov-model/
-
-
-def forward(
-    sequence, transition_probabilities, emission_probabilities, initial_distribution
-):
-    # Initialization step
-    alpha = np.zeros((sequence.shape[0], transition_probabilities.shape[0]))
-    alpha[0, :] = initial_distribution * emission_probabilities[:, sequence[0]]
-
-    # Induction step
-    # a_{ij}
-    # t = step count
-    # j = state to
-    for t in range(1, sequence.shape[0]):
-        for j in range(transition_probabilities.shape[0]):
-            # Matrix Computation Steps
-            #                  ((1x2) . (1x2))      *     (1)
-            #                        (1)            *     (1)
-            alpha[t, j] = (
-                alpha[t - 1].dot(transition_probabilities[:, j])
-                * emission_probabilities[j, sequence[t]]
-            )
-
-    return alpha
+AMINO_ACIDS = aa.amino_acids
+AA_TO_IDX = aa.amino_acid_to_index
 
 
-def backward(sequence, transition_probabilities, emission_probabilities):
-    beta = np.zeros((sequence.shape[0], transition_probabilities.shape[0]))
-
-    # setting beta(T) = 1
-    beta[sequence.shape[0] - 1] = np.ones((transition_probabilities.shape[0]))
-
-    # Loop in backward way from T-1 to
-    # Due to python indexing the actual loop will be T-2 to 0
-    for t in range(sequence.shape[0] - 2, -1, -1):
-        for j in range(transition_probabilities.shape[0]):
-            beta[t, j] = (beta[t + 1] * emission_probabilities[:, sequence[t + 1]]).dot(
-                transition_probabilities[j, :]
-            )
-
-    return beta
+def build_index(states: dict[str, State]) -> tuple[list[str], dict[str, int]]:
+    idx_to_name = sorted(states.keys())
+    name_to_idx = {name: i for i, name in enumerate(idx_to_name)}
+    return idx_to_name, name_to_idx
 
 
-def forward_backward(
-    sequence,
-    transition_probabilities,
-    emission_probabilities,
-    initial_distribution,
-    n_iter=100,
-):
-    M = transition_probabilities.shape[0]
-    T = len(sequence)
+def build_transition_matrix(
+    states: dict[str, State],
+    name_to_idx: dict[str, int],
+) -> np.ndarray:
+    n = len(states)
+    A = np.zeros((n, n))
 
-    for n in range(n_iter):
-        alpha = forward(
-            sequence,
-            transition_probabilities,
-            emission_probabilities,
-            initial_distribution,
-        )
-        beta = backward(sequence, transition_probabilities, emission_probabilities)
+    for name, state in states.items():
+        i = name_to_idx[name]
+        for target_name, prob in state.transitions.items():
+            j = name_to_idx[target_name]
+            A[i, j] = prob
 
-        # greek letter xi
-        # the probability of being in state S_i at time instance t
-        # and in state S_j at time instance t + 1
-        xi = np.zeros((M, M, T - 1))
-        for t in range(T - 1):
-            denominator = np.dot(
-                np.dot(alpha[t, :].T, transition_probabilities)
-                * emission_probabilities[:, sequence[t + 1]].T,
-                beta[t + 1, :],
-            )
-            for i in range(M):
-                numerator = (
-                    alpha[t, i]
-                    * transition_probabilities[i, :]
-                    * emission_probabilities[:, sequence[t + 1]].T
-                    * beta[t + 1, :].T
-                )
-                xi[i, :, t] = numerator / denominator
+    return A
 
-        gamma = np.sum(xi, axis=1)
-        transition_probabilities = np.sum(xi, 2) / np.sum(gamma, axis=1).reshape(
-            (-1, 1)
+
+def build_emission_matrix(
+    states: dict[str, State],
+    name_to_idx: dict[str, int],
+) -> np.ndarray:
+    n = len(states)
+    B = np.zeros((n, len(AMINO_ACIDS)))
+
+    for name, state in states.items():
+        i = name_to_idx[name]
+        for aa, prob in state.emissions.items():
+            k = AA_TO_IDX[aa]
+            B[i, k] = prob
+
+    return B
+
+
+def build_initial_distribution(
+    states: dict[str, State],
+    name_to_idx: dict[str, int],
+) -> np.ndarray:
+    pi = np.zeros(len(states))
+    pi[name_to_idx["inner_n_term"]] = 1.0
+    return pi
+
+
+def encode_sequence(sequence: str) -> np.ndarray:
+    encoded = []
+    for aa in sequence:
+        if aa in AA_TO_IDX:
+            encoded.append(AA_TO_IDX[aa])
+        else:
+            print(f"Warning: unknown amino acid '{aa}', skipping.")
+
+    return np.array(encoded, dtype=int)
+
+
+def forward_log(sequence, A, B, pi):
+    T = sequence.shape[0]
+    N = A.shape[0]
+
+    log_A = np.log(np.where(A > 0, A, 1e-300))
+    log_B = np.log(np.where(B > 0, B, 1e-300))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+
+    log_alpha = np.full((T, N), -np.inf)
+    log_alpha[0, :] = log_pi + log_B[:, sequence[0]]
+
+    for t in range(1, T):
+        # for each destination state j, sum over all source states i
+        log_alpha[t, :] = (
+            logsumexp(log_alpha[t - 1, :, None] + log_A, axis=0)  # shape (N,)
+            + log_B[:, sequence[t]]
         )
 
-        # Add additional T'th element in gamma
-        gamma = np.hstack((gamma, np.sum(xi[:, :, T - 2], axis=0).reshape((-1, 1))))
+    return log_alpha
 
-        K = emission_probabilities.shape[1]
-        denominator = np.sum(gamma, axis=1)
-        for l in range(K):
-            emission_probabilities[:, l] = np.sum(gamma[:, sequence == l], axis=1)
 
-        emission_probabilities = np.divide(
-            emission_probabilities, denominator.reshape((-1, 1))
+def backward_log(sequence, A, B):
+    T = sequence.shape[0]
+    N = A.shape[0]
+
+    log_A = np.log(np.where(A > 0, A, 1e-300))
+    log_B = np.log(np.where(B > 0, B, 1e-300))
+
+    log_beta = np.full((T, N), -np.inf)
+    log_beta[T - 1, :] = 0.0  # log(1) = 0
+
+    for t in range(T - 2, -1, -1):
+        # for each source state j, sum over all destination states k
+        log_beta[t, :] = logsumexp(
+            log_A + log_B[:, sequence[t + 1]] + log_beta[t + 1, :],  # broadcast over j
+            axis=1,
         )
 
-    return {"a": transition_probabilities, "b": emission_probabilities}
+    return log_beta
 
 
-def modified_forward_backward():
-    pass
+def run_forward_backward(protein, states):
+    idx_to_name, name_to_idx = build_index(states)
+    A = build_transition_matrix(states, name_to_idx)
+    B = build_emission_matrix(states, name_to_idx)
+    pi = build_initial_distribution(states, name_to_idx)
+    obs = encode_sequence(protein.sequence)
+
+    log_alpha = forward_log(obs, A, B, pi)
+    log_beta = backward_log(obs, A, B)
+
+    index = {"idx_to_name": idx_to_name, "name_to_idx": name_to_idx}
+    return log_alpha, log_beta, index

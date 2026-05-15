@@ -15,17 +15,17 @@ def find_protein_names(path):
 
 def find_annotation(segments: list[Segment]) -> str:
     annotated_sequence: str = ""
-    
+
     for segment in segments:
         nb = segment.end - segment.begin + 1
-        if segment.label == Label.INNER: 
+        if segment.label == Label.INNER:
             symbool = "I"
-        elif segment.label == Label.OUTER: 
+        elif segment.label == Label.OUTER:
             symbool = "O"
-        else: 
+        else:
             symbool = "T"
-        
-        annotated_sequence = annotated_sequence + (symbool * nb)  
+
+        annotated_sequence = annotated_sequence + (symbool * nb)
 
     return annotated_sequence
 
@@ -37,7 +37,12 @@ def collect_data(protein_names: list[str]) -> list[Protein]:
         sequence: str = find_sequence(protein_name)
         segments: list[Segment] = find_segments(protein_name)
         annotated_sequence = find_annotation(segments)
-        protein = Protein(name=protein_name, sequence=sequence, segments=segments, annotated_sequence=annotated_sequence)
+        protein = Protein(
+            name=protein_name,
+            sequence=sequence,
+            segments=segments,
+            annotated_sequence=annotated_sequence,
+        )
         proteins.append(protein)
 
     return proteins
@@ -67,7 +72,7 @@ def remove_unlabeled(proteins: list[Protein]) -> list[Protein]:
                 segment.begin = segment.begin - offset
                 segment.end = segment.end - offset
         protein.segments = new_segments
-    
+
     return proteins
 
 

@@ -1,74 +1,60 @@
-from utils.csv_reader import collect_data, find_protein_names, remove_unlabeled
-from domain.sequence import Protein
-from domain.amino_acid import find_indices, find_index
-import numpy as np
-from utils.stats import (
-    observation_distribution,
-    transition_distribution,
-    initial_distribution,
+from domain.protein import Protein
+
+# from domain.amino_acid import find_indices, find_index
+# import numpy as np
+from scipy.special import logsumexp
+
+# from utils.stats import (
+#     observation_distribution,
+#     transition_distribution,
+#     initial_distribution,
+# )
+# from hmm.hidden_markov_model import test
+
+
+from domain.probabilities.emission import emission
+
+from domain.probabilities.joint_probability import (
+    cml_log_probability,
+    total_cml_objective,
 )
-from hmm.hidden_markov_model import test
+from domain.probabilities.transition import transition
+from domain.state.util import build_states, count_states
+
+from hmm.forward_backward import run_forward_backward
+
+# from utils.xml_reader import collect_data, remove_unlabeled
+
+
+from utils.xml_reader import collect_data
+from pprint import pprint
 
 
 def main():
     print("Hello from bioinformatics project!")
 
-    protein_names: list[str] = find_protein_names("data/proteins/")
+    proteins = collect_data()
+    states = build_states()
+    emissions = emission(states, proteins)
+    transition(states)
 
-    # data: list[Protein] = collect_data(protein_names)
+    protein = proteins[0]
 
-    # print("====== DATA ======")
-    # print(data)
-    # # proteins = csv.read_aminoacid_sequence()
-    # # print("----- Proteins -----")
-    # # print(proteins)
+    log_alpha, log_beta, index = run_forward_backward(protein, states)
 
-    # # betastrands = csv.read_annotations()
-    # # print("----- Betastrands -----")
-    # # print(betastrands)
+    T = len(protein.sequence)
 
-    # print("===== STATS =====")
-    # d = label_frequencies(data)
+    T = len(protein.sequence)
+    log_p_obs = logsumexp(log_alpha[T - 1, :])
+    print(f"log P(obs): {log_p_obs:.4f}")
 
-    data = collect_data(protein_names=protein_names)
-    data = remove_unlabeled(data)
+    # CML objective for one protein
+    print("\n--- Single protein CML ---")
+    cml_log_probability(protein, states)
 
-    id = initial_distribution(data)
-
-    tm = transition_distribution(data)
-    print(tm)
-
-    od = observation_distribution(data)
-
-    test_protein_names = ["2FCP"]
-    test_data = collect_data(test_protein_names)
-    test_data = remove_unlabeled(test_data)
-
-    # print(tm.sum(axis=1))
-    # print(od.sum(axis=1))
-
-    training_set = []
-
-    for protein in data:
-        training_set.append([find_index(i) for i in protein.sequence])
-
-    test_set = test_data[0].sequence
-
-    test_set = [find_index(i) for i in test_set]
-
-    # print(training_set)
-
-    print(id)
-
-    res = test(id, tm, od, test_set)
-    print("ORIGINAL MATRIX")
-    print(res)
-
-    tm_debug = np.array([[0.5, 0.5, 0], [0.2, 0.6, 0.2], [0, 0.5, 0.5]])
-
-    res = test(id, tm_debug, od, test_set)
-    print("DEBUG MATRIX")
-    print(res)
+    # CML objective over the whole training set
+    print("\n--- Full training set CML ---")
+    total_cml_objective(proteins, states)
 
 
 if __name__ == "__main__":

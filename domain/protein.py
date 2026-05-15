@@ -1,13 +1,16 @@
 from dataclasses import dataclass
+import inspect
 
 
 @dataclass
 class Protein:
+    name: str
+    sequence: str
+    labels: str
 
-    def __init__(self, name, code, sequence):
-        self.name = name
-        self.code = code
-        self.sequence = sequence
-
-    def __repr__(self):
-        return f"name: {self.name}, code: {self.code}, sequence: {self.sequence}."
+    def __repr__(self) -> str:
+        return inspect.cleandoc(f"""
+            === Protein: {self.name} ===
+            sequence: {self.sequence}
+            labels:   {self.labels}
+        """)

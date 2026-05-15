@@ -3,6 +3,7 @@ from domain.amino_acid import find_index, nb_of_amino_acid
 import numpy as np
 import numpy.typing as npt
 
+
 def initial_distribution(proteins: list[Protein]) -> list[float]:
     labels: list[float] = [0, 0, 0]
 
@@ -14,7 +15,6 @@ def initial_distribution(proteins: list[Protein]) -> list[float]:
     return [i / len(proteins) for i in labels]
 
 
-# TODO: skip dictionary and put results in list directly
 def label_frequencies(proteins: list[Protein]) -> list[float]:
     dictionary: dict[Label, float] = {
         Label.INNER: 0,
@@ -83,6 +83,7 @@ def observation_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]
 
     return m
 
+
 def find_label(index, protein: Protein) -> Label:
     for segment in protein.segments:
         if index <= segment.end and index >= segment.begin:
@@ -101,7 +102,6 @@ def label_to_index(label: Label) -> int:
             return 2
         case _:
             return -1
-
 
 
 def conditional_maximum_likelihood(transition_matrix: list[list[float]]) -> int:
