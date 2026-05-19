@@ -93,7 +93,7 @@ def count_states(states: dict[str, State]) -> None:
 
 
 def build_tie_groups(states: dict[str, State]) -> dict[str, dict[str, float]]:
-    groups: dict[str, list[state]] = {}
+    groups: dict[str, list[State]] = {}
 
     for state in states.values():
         group_name = state.tie_group if state.tie_group else state.name

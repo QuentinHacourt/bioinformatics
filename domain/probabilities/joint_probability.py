@@ -56,7 +56,12 @@ def annotation_to_state_sequence(
         if label_char == "I":
             # Walk through inner ladder states, capped at ladder length
             for pos in range(length):
-                state_name = inner_ladder[min(pos, len(inner_ladder) - 1)]
+                if pos == 0:
+                    state_name = "inner_n_term"
+                elif pos < 7:
+                    state_name = inner_ladder[pos - 1]  # ladder_0..5
+                else:
+                    state_name = "inner_ladder_6"  # hub for long loops
                 result.append(name_to_idx[state_name])
 
         elif label_char == "O":
@@ -74,22 +79,32 @@ def annotation_to_state_sequence(
             #   positions 0..2       → aromatic belt top (3 states)
             #   positions 3..end-3   → alternating exterior/interior
             #   positions end-2..end → aromatic belt bottom (3 states)
-            belt_size = 2
+            belt_size = 1
             core_start = belt_size
             core_end = length - belt_size
 
             for pos in range(length):
-                if pos < belt_size:
-                    state_name = arom_top[pos]
-                elif pos >= length - belt_size:
-                    belt_pos = pos - (length - belt_size)
-                    state_name = arom_bottom[belt_pos]
-                else:
-                    core_pos = pos - core_start
+                if pos == 0:
+                    state_name = arom_top[0]
+                elif pos >= length - 1:
+                    state_name = arom_top[1]
+                # TODO: klopt langs geen kant xd
+                elif pos < 16:
+                    core_pos = pos - 1
                     if core_pos % 2 == 0:
-                        state_name = tm_ext[min(core_pos // 2, len(tm_ext) - 1)]
+                        state_name = tm_int[min(core_pos // 2, len(tm_int) // 2 - 1)]
                     else:
-                        state_name = tm_int[min(core_pos // 2, len(tm_int) - 1)]
+                        state_name = tm_ext[min(core_pos // 2, len(tm_ext) // 2 - 1)]
+                elif pos == 16:
+                    state_name = arom_top[1]
+                elif pos == 17:
+                    state_name = arom_bottom[0]
+                else:
+                    core_pos = pos - 3
+                    if core_pos % 2 == 1:
+                        state_name = tm_int[min(core_pos // 2, len(tm_int) // 2 - 1)]
+                    else:
+                        state_name = tm_ext[min(core_pos // 2, len(tm_ext) // 2 - 1)]
 
                 result.append(name_to_idx[state_name])
 

@@ -21,17 +21,21 @@ def _normalize(raw: dict[str, float]) -> dict[str, float]:
     return {k: v / total for k, v in raw.items()}
 
 
+# TODO: just return a matrix
 def transition(states: dict[str, State]) -> None:
     inner_ladder = _get_states_by_role(states, StateRole.INNER_LADDER)
     outer_ladder = _get_states_by_role(states, StateRole.OUTER_LADDER)
-    arom_top = _get_states_by_role(states, StateRole.AROMATIC_BELT)[:2]  # first two
-    arom_bottom = _get_states_by_role(states, StateRole.AROMATIC_BELT)[2:]  # last two
+    arom_top = _get_states_by_role(states, StateRole.AROMATIC_BELT)[:2]
+    arom_bottom = _get_states_by_role(states, StateRole.AROMATIC_BELT)[2:]
     tm_ext = _get_states_by_role(states, StateRole.TM_EXTERIOR)
     tm_int = _get_states_by_role(states, StateRole.TM_INTERIOR)
 
     n_term = states["inner_n_term"]
     c_term = states["inner_c_term"]
     globular = states["outer_globular"]
+
+    MIN_STRAND = 7
+    MAX_STRAND = 17
 
     # === N-terminal ===
     n_term.transitions = _normalize(
@@ -41,85 +45,225 @@ def transition(states: dict[str, State]) -> None:
         }
     )
 
+    # === C-terminal ===
+    c_term.transitions = {c_term.name: 1.0}
+
     # === Inner Ladder ===
     for i, state in enumerate(inner_ladder):
-        if i < len(inner_ladder) - 1:
-            state.transitions = _normalize(
-                {
-                    inner_ladder[i + 1].name: 1.0,
-                }
-            )
-        else:
-            state.transitions = _normalize(
-                {
-                    arom_top[0].name: 1.0,
-                    c_term.name: 1.0,
-                }
-            )
+        match i:
+            case 0:
+                state.transitions = _normalize({inner_ladder[1].name: 1.0})
+            case 1:
+                state.transitions = _normalize({inner_ladder[2].name: 1.0})
+            case 2:
+                state.transitions = _normalize({inner_ladder[3].name: 1.0})
+            case 3:
+                state.transitions = _normalize({inner_ladder[4].name: 1.0})
+            case 4:
+                state.transitions = _normalize({inner_ladder[5].name: 1.0})
+            case 5:
+                state.transitions = _normalize({arom_top[0].name: 1.0})
+            case 6:
+                state.transitions = _normalize(
+                    {
+                        arom_top[0].name: 1.0,
+                        inner_ladder[5].name: 1.0,
+                        inner_ladder[7].name: 1.0,
+                    }
+                )
+            case 7:
+                state.transitions = _normalize(
+                    {
+                        inner_ladder[8].name: 1.0,
+                        inner_ladder[5].name: 1.0,
+                        inner_ladder[4].name: 1.0,
+                    }
+                )
+            case 8:
+                state.transitions = _normalize(
+                    {
+                        inner_ladder[9].name: 1.0,
+                        inner_ladder[3].name: 1.0,
+                        inner_ladder[4].name: 1.0,
+                    }
+                )
+            case 9:
+                state.transitions = _normalize(
+                    {
+                        inner_ladder[10].name: 1.0,
+                        inner_ladder[2].name: 1.0,
+                        inner_ladder[3].name: 1.0,
+                    }
+                )
+            case 10:
+                state.transitions = _normalize(
+                    {
+                        inner_ladder[11].name: 1.0,
+                        inner_ladder[1].name: 1.0,
+                        inner_ladder[2].name: 1.0,
+                    }
+                )
+            case 11:
+                state.transitions = _normalize(
+                    {
+                        c_term.name: 1.0,
+                        inner_ladder[0].name: 1.0,
+                        inner_ladder[1].name: 1.0,
+                    }
+                )
+            case _:
+                raise ValueError(
+                    f"there is no inner ladder element with the following number in our model: {i}"
+                )
 
-        # === C-terminal ===
-        c_term.transitions = {c_term.name: 1.0}
-
-        # === Aromatic Belt ===
-        for i, state in enumerate(arom_top):
-            if i < len(arom_top) - 1:
-                state.transitions = _normalize({arom_top[i + 1].name: 1.0})
-            else:
-                state.transitions = _normalize({tm_ext[0].name: 1.0})
-
-        MIN_STRAND = 7
-        MAX_STRAND = 17
-
-        for i, ext_state in enumerate(tm_ext):
-            position = i * 2 + 1
-            next_int = tm_int[i] if i < len(tm_int) else None
-
-            trans: dict[str, float] = {}
-
-            if next_int:
-                trans[next_int.name] = 1.0
-
-            if position >= MIN_STRAND:
-                trans[arom_bottom[0].name] = 1.0
-
-            ext_state.transitions = _normalize(trans)
-
-        for i, int_state in enumerate(tm_int):
-            # TODO: swap interior and exterior indices
-            position = i * 2 + 2
-            next_ext = tm_ext[i + 1] if i + 1 < len(tm_ext) else None
-
-            trans: dict[str, float] = {}
-
-            if next_ext and position < MAX_STRAND:
-                trans[next_ext.name] = 1.0
-
-            if position >= MIN_STRAND:
-                trans[arom_bottom[0].name] = 1.0
-
-            int_state.transitions = _normalize(trans)
-
-        # === Aromatic Belt ===
-        for i, state in enumerate(arom_bottom):
-            if i < len(arom_bottom) - 1:
-                state.transitions = _normalize({arom_bottom[i + 1].name: 1.0})
-            else:
+    # === Aromatic Belt Top ===
+    for i, state in enumerate(arom_top):
+        match i:
+            case 0:
+                state.transitions = _normalize({tm_int[0].name: 1.0})
+            case 1:
                 state.transitions = _normalize({outer_ladder[0].name: 1.0})
+            case _:
+                raise ValueError(
+                    f"there is no Aromatic Belt Top element with the following number in our model: {i}"
+                )
 
-        # === Outer ladder ===
-        for i, state in enumerate(outer_ladder):
-            trans: dict[str, float] = {globular.name: 1.0}
+    # === TM Exterior ===
+    for i, ext_state in enumerate(tm_ext):
+        if i < 7:
+            ext_state.transitions = _normalize({tm_int[i + 1].name: 1.0})
+        else:
+            ext_state.transitions = _normalize({tm_int[i + 2].name: 1.0})
 
-            if i < len(outer_ladder) - 1:
-                trans[outer_ladder[i + 1].name] = 1.0
-            else:
-                trans[arom_top[0].name] = 1.0
+    # === TM Interior ===
+    for i, int_state in enumerate(tm_int):
+        match i:
+            case 0:
+                int_state.transitions = _normalize({tm_ext[0].name: 1.0})
+            case 1:
+                int_state.transitions = _normalize({tm_ext[1].name: 1.0})
+            case 2:
+                int_state.transitions = _normalize(
+                    {
+                        tm_ext[2].name: 1.0,
+                        tm_ext[3].name: 1.0,
+                        tm_ext[4].name: 1.0,
+                        tm_ext[5].name: 1.0,
+                        tm_ext[6].name: 1.0,
+                        arom_top[1].name: 1.0,
+                    },
+                )
+            case 3:
+                int_state.transitions = _normalize({tm_ext[3].name: 1.0})
+            case 4:
+                int_state.transitions = _normalize({tm_ext[4].name: 1.0})
+            case 5:
+                int_state.transitions = _normalize({tm_ext[5].name: 1.0})
+            case 6:
+                int_state.transitions = _normalize({tm_ext[6].name: 1.0})
+            case 7:
+                int_state.transitions = _normalize({arom_top[1].name: 1.0})
+            case 8:
+                int_state.transitions = _normalize({tm_ext[7].name: 1.0})
+            case 9:
+                int_state.transitions = _normalize({tm_ext[8].name: 1.0})
+            case 10:
+                int_state.transitions = _normalize(
+                    {
+                        tm_ext[9].name: 1.0,
+                        tm_ext[10].name: 1.0,
+                        tm_ext[11].name: 1.0,
+                        tm_ext[12].name: 1.0,
+                        tm_ext[13].name: 1.0,
+                        arom_bottom[1].name: 1.0,
+                    },
+                )
+            case 11:
+                int_state.transitions = _normalize({tm_ext[10].name: 1.0})
+            case 12:
+                int_state.transitions = _normalize({tm_ext[11].name: 1.0})
+            case 13:
+                int_state.transitions = _normalize({tm_ext[12].name: 1.0})
+            case 14:
+                int_state.transitions = _normalize({tm_ext[13].name: 1.0})
+            case 15:
+                int_state.transitions = _normalize({arom_bottom[1].name: 1.0})
 
-            state.transitions = _normalize(trans)
+    # === Aromatic Belt Bottom ===
+    for i, state in enumerate(arom_bottom):
+        if i == 0:
+            state.transitions = _normalize({tm_int[8].name: 1.0})
+        else:
+            state.transitions = _normalize({inner_ladder[6].name: 1.0})
 
-        globular.transitions = _normalize(
-            {
-                globular.name: 1.0,
-                outer_ladder[-1].name: 1.0,
-            }
-        )
+    # === Outer Ladder ===
+    for i, state in enumerate(outer_ladder):
+        match i:
+            case 0:
+                state.transitions = _normalize(
+                    {
+                        outer_ladder[1].name: 1.0,
+                        outer_ladder[11].name: 1.0,
+                        arom_bottom[0].name: 1.0,
+                    }
+                )
+            case 1:
+                state.transitions = _normalize(
+                    {
+                        outer_ladder[2].name: 1.0,
+                        outer_ladder[11].name: 1.0,
+                        outer_ladder[10].name: 1.0,
+                    }
+                )
+            case 2:
+                state.transitions = _normalize(
+                    {
+                        outer_ladder[3].name: 1.0,
+                        outer_ladder[10].name: 1.0,
+                        outer_ladder[9].name: 1.0,
+                    }
+                )
+            case 3:
+                state.transitions = _normalize(
+                    {
+                        outer_ladder[4].name: 1.0,
+                        outer_ladder[8].name: 1.0,
+                        outer_ladder[9].name: 1.0,
+                    }
+                )
+            case 4:
+                state.transitions = _normalize(
+                    {
+                        outer_ladder[5].name: 1.0,
+                        outer_ladder[7].name: 1.0,
+                        outer_ladder[8].name: 1.0,
+                    }
+                )
+            case 5:
+                state.transitions = _normalize(
+                    {
+                        globular.name: 1.0,
+                        outer_ladder[6].name: 1.0,
+                        outer_ladder[7].name: 1.0,
+                    }
+                )
+            case 6:
+                state.transitions = _normalize({outer_ladder[7].name: 1.0})
+            case 7:
+                state.transitions = _normalize({outer_ladder[8].name: 1.0})
+            case 8:
+                state.transitions = _normalize({outer_ladder[9].name: 1.0})
+            case 9:
+                state.transitions = _normalize({outer_ladder[10].name: 1.0})
+            case 10:
+                state.transitions = _normalize({outer_ladder[11].name: 1.0})
+            case 11:
+                state.transitions = _normalize({arom_bottom[0].name: 1.0})
+
+    # === Globular ===
+    globular.transitions = _normalize(
+        {
+            globular.name: 1.0,
+            outer_ladder[6].name: 1.0,
+        }
+    )

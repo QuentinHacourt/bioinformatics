@@ -48,9 +48,34 @@ def build_emission_matrix(
 def build_initial_distribution(
     states: dict[str, State],
     name_to_idx: dict[str, int],
+    proteins: list[Protein] = None,  # pass proteins to learn from data
 ) -> np.ndarray:
     pi = np.zeros(len(states))
-    pi[name_to_idx["inner_n_term"]] = 1.0
+
+    if proteins is None:
+        # fallback: start in inner n-term
+        pi[name_to_idx["inner_n_term"]] = 1.0
+        return pi
+
+    # Count how many proteins start with each label
+    starts = {"I": 0, "O": 0, "T": 0}
+    for protein in proteins:
+        if protein.labels:
+            starts[protein.labels[0]] = starts.get(protein.labels[0], 0) + 1
+
+    total = sum(starts.values())
+    print(f"  Start label distribution: {starts}")
+
+    # Map starting label to starting state
+    inner_start = name_to_idx["inner_n_term"]
+    outer_start = name_to_idx["outer_ladder_0"]
+
+    pi[inner_start] = starts.get("I", 0) / total
+    pi[outer_start] = starts.get("O", 0) / total
+    # T starts are rare but handle them
+    if starts.get("T", 0) > 0:
+        pi[name_to_idx["tm_aromatic_top_0"]] = starts["T"] / total
+
     return pi
 
 
@@ -118,3 +143,88 @@ def run_forward_backward(protein, states):
 
     index = {"idx_to_name": idx_to_name, "name_to_idx": name_to_idx}
     return log_alpha, log_beta, index
+
+
+# def forward_joint_log(
+#     sequence: np.ndarray,
+#     state_path: list[int],
+#     A: np.ndarray,
+#     B: np.ndarray,
+#     pi: np.ndarray,
+# ) -> np.ndarray:
+#     T = len(sequence)
+#     N = A.shape[0]
+#     log_A = np.log(np.where(A > 0, A, 1e-300))
+#     log_B = np.log(np.where(B > 0, B, 1e-300))
+#     log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+
+#     log_alpha_joint = np.full((T, N), -np.inf)
+
+#     s0 = state_path[0]
+#     log_alpha_joint[0, s0] = log_pi[s0] + log_B[s0, sequence[0]]
+
+#     for t in range(1, T):
+#         prev_s = state_path[T - 1]
+#         curr_s = state_path[t]
+
+#         log_alpha_joint[t, curr_s] = (
+#             log_alpha_joint[t - 1, prev_s]
+#             + log_A[prev_s, curr_s]
+#             + log_B[curr_s, sequence[t]]
+#         )
+
+#     return log_alpha_joint
+
+
+# def joint_log_probability(
+#     protein: Protein,
+#     A: np.ndarray,
+#     B: np.ndarray,
+#     pi: np.ndarray,
+#     name_to_idx: dict[str, int],
+# ) -> tuple[float, np.ndarray, list[int]]:
+#     obs = encode_sequence(protein.sequence)
+#     state_path = annotation_to_state_sequence(protein.labels, name_to_idx)
+#     if len(obs) != len(state_path):
+#         raise ValueError(
+#             f"{protein.name}: sequence length {len(obs)}"
+#             f"annotation length {len(state_path)}"
+#         )
+
+#     log_A = np.log(np.where(A > 0, A, 1e-300))
+#     log_B = np.log(np.where(B > 0, B, 1e-300))
+#     log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+
+#     log_alpha_joint = forward_joint_log(obs, state_path, A, B, pi)
+
+#     log_p_joint = log_alpha_joint[-1, state_path[-1]]
+
+#     return log_p_joint, log_alpha_joint, state_path
+
+
+# def cml_log_probability(
+#     protein: Protein,
+#     states: dict[str, State],
+# ) -> float:
+#     idx_to_name, name_to_idx = build_index(states)
+#     A = build_transition_matrix(states, name_to_idx)
+#     B = build_emission_matrix(states, name_to_idx)
+#     pi = build_initial_distribution(states, name_to_idx)
+#     obs = encode_sequence(protein.sequence)
+
+#     log_p_joint, log_alpha_joint, state_path = joint_log_probability(
+#         protein, A, B, pi, name_to_idx
+#     )
+
+#     log_alpha = forward_log(obs, A, B, pi)
+#     log_p_obs = logsumexp(log_alpha[-1, :])
+
+#     log_conditional = log_p_joint - log_p_obs
+
+#     print(f"{protein.name}")
+#     print(f"  log P(x,y):  {log_p_joint:.4f}")
+#     print(f"  log P(x):    {log_p_obs:.4f}")
+#     print(f"  log P(y|x):  {log_conditional:.4f}")
+#     print(f"  P(y|x):      {np.exp(log_conditional):.4e}")
+
+#     return log_conditional
