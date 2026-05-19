@@ -55,7 +55,7 @@ def compute_gradients(
     name_to_idx: dict[str, int],
 ) -> tuple[np.ndarray, np.ndarray]:
     obs = encode_sequence(protein.sequence)
-    state_path = annotation_to_state_sequence(protein.labels, name_to_idx)
+    state_path = annotation_to_state_sequence(protein.labels, name_to_idx, A, B, pi)
     T = len(obs)
     N = A.shape[0]
     K = B.shape[1]
@@ -161,12 +161,16 @@ def cml_train(
     n_iter: int = 100,
     learning_rate: float = 1.0,
     eps: float = 1e-10,
+    A: np.ndarray | None = None,
+    B: np.ndarray | None = None
 ) -> tuple[np.ndarray, np.ndarray]:
     idx_to_name, name_to_idx = build_index(states)
     tied_groups = build_tied_groups(states, name_to_idx)
 
-    A = build_transition_matrix(states, name_to_idx)
-    B = build_emission_matrix(states, name_to_idx)
+    if A is None:
+        A = build_transition_matrix(states, name_to_idx)
+        B = build_emission_matrix(states, name_to_idx)
+        
     pi = build_initial_distribution(states, name_to_idx, proteins)
 
     print(f"Starting CML training: {n_iter} iterations, lr={learning_rate}")
@@ -192,7 +196,7 @@ def cml_train(
                 total_expected_B += expected_B
 
                 obs = encode_sequence(protein.sequence)
-                state_path = annotation_to_state_sequence(protein.labels, name_to_idx)
+                state_path = annotation_to_state_sequence(protein.labels, name_to_idx, A, B, pi)
                 log_alpha_joint = forward_joint_log(obs, state_path, A, B, pi)
                 log_p_joint = log_alpha_joint[-1, state_path[-1]]
                 log_alpha = forward_log(obs, A, B, pi)
@@ -276,7 +280,7 @@ def compute_expected_counts(
         expected_B — expected emission counts under full model
     """
     obs = encode_sequence(protein.sequence)
-    state_path = annotation_to_state_sequence(protein.labels, name_to_idx)
+    state_path = annotation_to_state_sequence(protein.labels, name_to_idx, A, B, pi)
     T = len(obs)
     N = A.shape[0]
     K = B.shape[1]
@@ -284,12 +288,10 @@ def compute_expected_counts(
     log_A = np.log(np.where(A > 0, A, 1e-300))
     log_B = np.log(np.where(B > 0, B, 1e-300))
 
-    # ── Standard forward/backward ─────────────────────────────────────────
     log_alpha = forward_log(obs, A, B, pi)
     log_beta = backward_log(obs, A, B)
     log_p_obs = logsumexp(log_alpha[-1, :])
-
-    # ── Correct path counts ───────────────────────────────────────────────
+    
     correct_A = np.zeros((N, N))
     correct_B = np.zeros((N, K))
 
@@ -303,7 +305,6 @@ def compute_expected_counts(
         k = obs[t]
         correct_B[j, k] += 1.0
 
-    # ── Expected counts under full model ──────────────────────────────────
     expected_A = np.zeros((N, N))
     expected_B = np.zeros((N, K))
 

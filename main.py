@@ -1,5 +1,5 @@
 from domain.protein import Protein
-
+import random
 # from domain.amino_acid import find_indices, find_index
 import numpy as np
 from scipy.special import logsumexp
@@ -43,87 +43,41 @@ from hmm.n_best import decode, evaluate
 
 def main():
     proteins = collect_data()
-    train = proteins[7:]
-    test = proteins[:7]
     states = build_states()
     emission(states, proteins)
     transition(states)
+    trained_A = None
+    trained_B = None
+    for r in [5,10,15]:
+        for n in [50, 100,200,500]:
+            for lr in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
+                for i in range(r):
+                    train = random.sample(proteins, 7)
+                    test = [item for item in proteins if item not in train]
+                    trained_A, trained_B = cml_train(train, states, n_iter=n, learning_rate=lr, A=trained_A, B=trained_B)
 
-    # # Train
-    # trained_A, trained_B = cml_train(train, states, n_iter=200, learning_rate=0.01)
+                    print("\n--- Self-consistency test (N-best) ---")
+                    n_best = evaluate(test, states, trained_A, trained_B, method="n_best")
 
-    # # ── Diagnostic ───────────────────────────────────────────────────────
-    # idx_to_name, name_to_idx = build_index(states)
-    # A = build_transition_matrix(states, name_to_idx)
-    # B = build_emission_matrix(states, name_to_idx)
-    # pi = build_initial_distribution(states, name_to_idx)
+                    print("\n--- Self-consistency test (Viterbi) ---")
+                    viterbi = evaluate(test, states, trained_A, trained_B, method="viterbi")
+                    protein = proteins[0]
+                    labeling, log_prob = decode(protein, states, trained_A, trained_B)
+                    print(f"\n{protein.name} predicted:  {labeling}...")
+                    print(f"{protein.name} true:        {protein.labels}...")
+                    #print_proteins(proteins, states, trained_A, trained_B)
 
-    # for protein in proteins:
-    #     obs = encode_sequence(protein.sequence)
-    #     state_path = annotation_to_state_sequence(protein.labels, name_to_idx)
-    #     log_alpha_joint = forward_joint_log(obs, state_path, A, B, pi)
-    #     log_p_joint = log_alpha_joint[-1, state_path[-1]]
-    #     print(f"{protein.name}: log_p_joint={log_p_joint:.2f}")
-
-    #     # Also print the first broken transition
-    #     log_A = np.log(np.where(A > 0, A, 1e-300))
-    #     for t in range(1, len(obs)):
-    #         i = state_path[t - 1]
-    #         j = state_path[t]
-    #         if log_A[i, j] < -100:
-    #             print(f"  BROKEN at t={t}: {idx_to_name[i]} → {idx_to_name[j]}")
-    #             break
-
-    # ── Training ─────────────────────────────────────────────────────────
-    trained_A, trained_B = cml_train(train, states, n_iter=50, learning_rate=0.5)
-
-    # Decode and evaluate on training set (self-consistency test)
-    print("\n--- Self-consistency test (N-best) ---")
-    evaluate(test, states, trained_A, trained_B, method="n_best")
-
-    print("\n--- Self-consistency test (Viterbi) ---")
-    evaluate(test, states, trained_A, trained_B, method="viterbi")
-
-    # Decode a single protein in detail
-    protein = proteins[0]
-    labeling, log_prob = decode(protein, states, trained_A, trained_B)
-    print(f"\n{protein.name} predicted:  {labeling}...")
-    print(f"{protein.name} true:        {protein.labels}...")
+                    with open(f"output/{n}-{r}-{lr}-{i}.txt", "w", encoding="utf-8") as f:
+                        f.writelines(n_best)
+                        f.writelines(viterbi)
+                        f.write(f"\n{protein.name} predicted:  {labeling}...")
+                        f.write(f"\n{protein.name} true:        {protein.labels}...")
 
 
 def print_proteins(proteins, states, trained_A, trained_B):
     for protein in proteins:
         labeling, _ = decode(protein, states, trained_A, trained_B)
         label_printer(labeling, protein.labels, protein.name)
-
-
-# def main():
-#     print("Hello from bioinformatics project!")
-
-#     proteins = collect_data()
-#     states = build_states()
-#     emission(states, proteins)
-#     transition(states)
-
-#     protein = proteins[0]
-
-#     # TODO: lus over alle proteines
-#     log_alpha, log_beta, index = run_forward_backward(protein, states)
-
-#     T = len(protein.sequence)
-
-#     T = len(protein.sequence)
-#     log_p_obs = logsumexp(log_alpha[T - 1, :])
-#     print(f"log P(obs): {log_p_obs:.4f}")
-
-#     # CML objective for one protein
-#     print("\n--- Single protein CML ---")
-#     cml_log_probability(protein, states)
-
-#     # CML objective over the whole training set
-#     print("\n--- Full training set CML ---")
-#     total_cml_objective(proteins, states)
-
 
 if __name__ == "__main__":
     main()

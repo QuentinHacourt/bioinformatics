@@ -15,100 +15,61 @@ from hmm.forward_backward import (
 def annotation_to_state_sequence(
     annotated_sequence: str,
     name_to_idx: dict[str, int],
+    A: np.ndarray,
+    B: np.ndarray,
+    pi: np.ndarray
 ) -> list[int]:
-    """
-    Map each character in the annotation to a concrete state index.
+    obs     = encode_sequence(annotated_sequence[0])
+    T       = len(annotated_sequence)
+    N       = len(name_to_idx)
 
-    Strategy: walk through the annotation and track position within
-    each segment (run of same label), then pick the appropriate state.
+    log_A  = np.log(np.where(A  > 0, A,  1e-300))
+    log_B  = np.log(np.where(B  > 0, B,  1e-300))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
 
-    I → inner_ladder_0..13 (cycle through ladder states)
-    T → alternate tm_exterior / tm_interior, with aromatic belt at edges
-    O → outer_ladder_0..12, with globular for long outer loops
-    """
-    result = []
-
-    # Track position within current run of same label
-    current_label = None
-    pos_in_segment = 0
-
-    # Pre-build lookup lists in order
-    inner_ladder = [f"inner_ladder_{i}" for i in range(12)]
-    outer_ladder = [f"outer_ladder_{i}" for i in range(12)]
-    arom_top = [f"tm_aromatic_top_{i}" for i in range(2)]
-    arom_bottom = [f"tm_aromatic_bottom_{i}" for i in range(2)]
-    tm_ext = [f"tm_exterior_{i}" for i in range(14)]
-    tm_int = [f"tm_interior_{i}" for i in range(16)]
-
-    # We need to know segment lengths ahead of time for TM
-    # so first parse into segments
-    segments: list[tuple[str, int]] = []  # (label_char, length)
-    i = 0
-    while i < len(annotated_sequence):
-        char = annotated_sequence[i]
-        j = i
-        while j < len(annotated_sequence) and annotated_sequence[j] == char:
-            j += 1
-        segments.append((char, j - i))
-        i = j
-
-    for label_char, length in segments:
+    def allowed(label_char: str) -> set[int]:
         if label_char == "I":
-            # Walk through inner ladder states, capped at ladder length
-            for pos in range(length):
-                if pos == 0:
-                    state_name = "inner_n_term"
-                elif pos < 7:
-                    state_name = inner_ladder[pos - 1]  # ladder_0..5
-                else:
-                    state_name = "inner_ladder_6"  # hub for long loops
-                result.append(name_to_idx[state_name])
-
+            return {
+                name_to_idx["inner_n_term"],
+                name_to_idx["inner_c_term"],
+                *[name_to_idx[f"inner_ladder_{i}"] for i in range(12)],
+            }
         elif label_char == "O":
-            # First few positions go through outer ladder,
-            # long loops overflow into globular
-            for pos in range(length):
-                if pos < len(outer_ladder):
-                    state_name = outer_ladder[pos]
-                else:
-                    state_name = "outer_globular"
-                result.append(name_to_idx[state_name])
-
+            return {
+                name_to_idx["outer_globular"],
+                *[name_to_idx[f"outer_ladder_{i}"] for i in range(12)],
+            }
         elif label_char == "T":
-            # TM strand layout:
-            #   positions 0..2       → aromatic belt top (3 states)
-            #   positions 3..end-3   → alternating exterior/interior
-            #   positions end-2..end → aromatic belt bottom (3 states)
-            belt_size = 1
-            core_start = belt_size
-            core_end = length - belt_size
+            return {
+                *[name_to_idx[f"tm_aromatic_top_{i}"] for i in range(2)],
+                *[name_to_idx[f"tm_aromatic_bottom_{i}"] for i in range(2)],
+                *[name_to_idx[f"tm_exterior_{i}"] for i in range(14)],
+                *[name_to_idx[f"tm_interior_{i}"] for i in range(16)],
+            }
+        return set()
+    dp      = np.full((T, N), -np.inf)
+    backptr = np.zeros((T, N), dtype=int)
 
-            for pos in range(length):
-                if pos == 0:
-                    state_name = arom_top[0]
-                elif pos >= length - 1:
-                    state_name = arom_top[1]
-                # TODO: klopt langs geen kant xd
-                elif pos < 16:
-                    core_pos = pos - 1
-                    if core_pos % 2 == 0:
-                        state_name = tm_int[min(core_pos // 2, len(tm_int) // 2 - 1)]
-                    else:
-                        state_name = tm_ext[min(core_pos // 2, len(tm_ext) // 2 - 1)]
-                elif pos == 16:
-                    state_name = arom_top[1]
-                elif pos == 17:
-                    state_name = arom_bottom[0]
-                else:
-                    core_pos = pos - 3
-                    if core_pos % 2 == 1:
-                        state_name = tm_int[min(core_pos // 2, len(tm_int) // 2 - 1)]
-                    else:
-                        state_name = tm_ext[min(core_pos // 2, len(tm_ext) // 2 - 1)]
+    for j in allowed(annotated_sequence[0]):
+        dp[0, j] = log_pi[j] 
 
-                result.append(name_to_idx[state_name])
+    for t in range(1, T):
+        allowed_j = allowed(annotated_sequence[t])
+        for j in allowed_j:
+            scores = dp[t-1, :] + log_A[:, j]
+            best_i = int(np.argmax(scores))
+            dp[t, j]       = scores[best_i]
+            backptr[t, j]  = best_i
 
-    return result
+    allowed_last = allowed(annotated_sequence[-1])
+    best_last    = max(allowed_last, key=lambda j: dp[-1, j])
+
+    path = [best_last]
+    for t in range(T - 1, 0, -1):
+        path.append(backptr[t, path[-1]])
+    path.reverse()
+
+    return path
 
 
 def joint_log_probability(
@@ -116,7 +77,7 @@ def joint_log_probability(
     A: np.ndarray,
     B: np.ndarray,
     pi: np.ndarray,
-    name_to_idx: dict[str, int],
+    name_to_idx: dict[str, int]
 ) -> float:
     """
     Compute log P(x, y | θ) — the joint probability of the sequence
@@ -126,7 +87,7 @@ def joint_log_probability(
         P(y | x, θ) = P(x, y | θ) / P(x | θ)
     """
     obs = encode_sequence(protein.sequence)
-    state_path = annotation_to_state_sequence(protein.labels, name_to_idx)
+    state_path = annotation_to_state_sequence(protein.labels, name_to_idx, A, B, pi)
 
     if len(obs) != len(state_path):
         raise ValueError(

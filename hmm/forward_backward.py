@@ -2,6 +2,7 @@ import domain.amino_acid as aa
 import numpy as np
 from scipy.special import logsumexp
 from domain.state.state import State
+from domain.protein import Protein
 
 AMINO_ACIDS = aa.amino_acids
 AA_TO_IDX = aa.amino_acid_to_index

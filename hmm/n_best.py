@@ -192,6 +192,7 @@ def evaluate(
     """
     total_residues = 0
     correct = 0
+    temp_res: list[str] = []
 
     for protein in proteins:
         predicted, log_prob = decode(protein, states, trained_A, trained_B, method)
@@ -210,7 +211,10 @@ def evaluate(
             f"  {protein.name:<10} accuracy: {accuracy:5.1f}%  "
             f"log_prob: {log_prob:.1f}  len: {len(true_labels)}"
         )
-
+        temp_res.append(f"{protein.name:<10}\t accuracy: {accuracy:5.1f},\t log_prob: {log_prob:.1f}\t  len: {len(true_labels)}\n")
+    
     overall = correct / total_residues * 100 if total_residues > 0 else 0
-    print(f"\nOverall per-residue accuracy: {overall:.2f}%")
-    print(f"  ({correct}/{total_residues} residues correct)")
+    print(f"\nOverall per-residue accuracy: {overall:.2f}\n")
+    print(f"  ({correct}/{total_residues} residues correct)\n")
+    temp_res.append(f"\nOverall per-residue accuracy: {overall:.2f}\n({correct}/{total_residues} residues correct)\n\n")
+    return temp_res
