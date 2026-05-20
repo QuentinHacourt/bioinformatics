@@ -55,7 +55,6 @@ def transition_distribution(proteins: list[Protein]) -> npt.NDArray[np.float64]:
             to_index: int = label_to_index(to_label)
             m[from_index][to_index] += 1
 
-    # transition_matrix = m / totalcount
     for i in range(0, 3):
         m[i] = m[i] / m[i].sum()
     return m
@@ -102,9 +101,3 @@ def label_to_index(label: Label) -> int:
             return 2
         case _:
             return -1
-
-
-def conditional_maximum_likelihood(transition_matrix: list[list[float]]) -> int:
-    res: int = 0
-
-    return res

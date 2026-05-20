@@ -47,10 +47,8 @@ def _count_amino_acid_per_group(proteins: list[Protein]) -> dict[str, dict[str, 
 def emission(
     states: dict[str, State], proteins: list[Protein], pseudocount: float = 1.0
 ) -> None:
-    # count amino acids per group
     raw_counts = _count_amino_acid_per_group(proteins)
 
-    # convert counts into probabilities
     emissions: dict[str, dict[str, float]] = {}
 
     all_tie_groups = set(ROLE_TO_TIE_GROUP.values())

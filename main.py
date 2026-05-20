@@ -46,8 +46,10 @@ def main():
     states = build_states()
     emission(states, proteins)
     transition(states)
+
     trained_A = None
     trained_B = None
+    
     for r in [5,10,15]:
         for n in [50, 100,200,500]:
             for lr in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
@@ -65,7 +67,6 @@ def main():
                     labeling, log_prob = decode(protein, states, trained_A, trained_B)
                     print(f"\n{protein.name} predicted:  {labeling}...")
                     print(f"{protein.name} true:        {protein.labels}...")
-                    #print_proteins(proteins, states, trained_A, trained_B)
 
                     with open(f"output/{n}-{r}-{lr}-{i}.txt", "w", encoding="utf-8") as f:
                         f.writelines(n_best)

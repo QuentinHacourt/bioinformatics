@@ -14,5 +14,5 @@ class State:
     absorbing: bool = False  # C-terminal can only go to C-terminal
 
     # Parameters
-    transitions: dict = field(default_factory=dict)  # alpha
-    emissions: dict = field(default_factory=dict)  # e
+    transitions: dict = field(default_factory=dict) 
+    emissions: dict = field(default_factory=dict) 

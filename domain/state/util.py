@@ -17,7 +17,7 @@ def build_states() -> dict[str, State]:
     add("inner_n_term", StateType.INNER_LOOP, StateRole.N_TERMINAL, tie="tail")
 
     # Ladder
-    for i in range(12):  # there are 12 ladder states
+    for i in range(12):  # 12 ladder states
         add(
             f"inner_ladder_{i}",
             StateType.INNER_LOOP,

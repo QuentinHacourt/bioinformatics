@@ -13,9 +13,6 @@ from domain.probabilities.joint_probability import annotation_to_state_sequence
 from domain.protein import Protein
 from domain.state.state import State
 
-AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
-
-
 def forward_joint_log(
     sequence: np.ndarray,
     state_path: list[int],
@@ -244,7 +241,6 @@ def cml_train(
         B_row_sums = B_new.sum(axis=1, keepdims=True)
         B_new = np.where(B_row_sums > 0, B_new / B_row_sums, B_new)
 
-        # Enforce tying
         for state_indices in tied_groups.values():
             if len(state_indices) < 2:
                 continue
@@ -272,13 +268,7 @@ def compute_expected_counts(
     pi: np.ndarray,
     name_to_idx: dict[str, int],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Returns:
-        correct_A  — transition counts on the correct path
-        correct_B  — emission counts on the correct path
-        expected_A — expected transition counts under full model
-        expected_B — expected emission counts under full model
-    """
+   
     obs = encode_sequence(protein.sequence)
     state_path = annotation_to_state_sequence(protein.labels, name_to_idx, A, B, pi)
     T = len(obs)
@@ -308,7 +298,6 @@ def compute_expected_counts(
     expected_A = np.zeros((N, N))
     expected_B = np.zeros((N, K))
 
-    # xi: expected transition counts
     for t in range(1, T):
         log_xi = (
             log_alpha[t - 1, :, None]
@@ -319,9 +308,8 @@ def compute_expected_counts(
         )
         expected_A += np.exp(log_xi)
 
-    # gamma: expected state occupation counts
     log_gamma = log_alpha + log_beta - log_p_obs
-    gamma = np.exp(log_gamma)  # (T, N)
+    gamma = np.exp(log_gamma)  
 
     for k in range(K):
         mask = obs == k
