@@ -2,8 +2,8 @@ from domain.state.state import State
 from domain.state.state_role import StateRole
 
 
-def _get_states_by_role(states: dict[str, State], role: StateRole) -> list[State]:
-    result = [state for state in states.values() if state.role == role]
+def _get_states_by_role(states: list[State], role: StateRole) -> list[State]:
+    result = [state for state in states if state.role == role]
 
     result.sort(
         key=lambda state: (
@@ -22,7 +22,7 @@ def _normalize(raw: dict[str, float]) -> dict[str, float]:
 
 
 # TODO: just return a matrix
-def transition(states: dict[str, State]) -> None:
+def transition(states: list[State]) -> None:
     inner_ladder = _get_states_by_role(states, StateRole.INNER_LADDER)
     outer_ladder = _get_states_by_role(states, StateRole.OUTER_LADDER)
     arom_top = _get_states_by_role(states, StateRole.AROMATIC_BELT)[:2]
@@ -30,9 +30,9 @@ def transition(states: dict[str, State]) -> None:
     tm_ext = _get_states_by_role(states, StateRole.TM_EXTERIOR)
     tm_int = _get_states_by_role(states, StateRole.TM_INTERIOR)
 
-    n_term = states["inner_n_term"]
-    c_term = states["inner_c_term"]
-    globular = states["outer_globular"]
+    n_term = [state for state in states if state.name == "inner_n_term"][0]
+    c_term = [state for state in states if state.name == "inner_c_term"][0]
+    globular = [state for state in states if state.name == "outer_globular"][0]
 
     MIN_STRAND = 7
     MAX_STRAND = 17

@@ -8,41 +8,11 @@ from hmm.forward_backward import (
     encode_sequence,
     forward_log,
     backward_log,
+    forward_joint_log
 )
 from domain.probabilities.joint_probability import annotation_to_state_sequence
 from domain.protein import Protein
 from domain.state.state import State
-
-def forward_joint_log(
-    sequence: np.ndarray,
-    state_path: list[int],
-    A: np.ndarray,
-    B: np.ndarray,
-    pi: np.ndarray,
-) -> np.ndarray:
-    T = len(sequence)
-    N = A.shape[0]
-
-    log_A = np.log(np.where(A > 0, A, 1e-300))
-    log_B = np.log(np.where(B > 0, B, 1e-300))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
-
-    log_alpha_joint = np.full((T, N), -np.inf)
-
-    s0 = state_path[0]
-    log_alpha_joint[0, s0] = log_pi[s0] + log_B[s0, sequence[0]]
-
-    for t in range(1, T):
-        prev_s = state_path[t - 1]
-        curr_s = state_path[t]
-        log_alpha_joint[t, curr_s] = (
-            log_alpha_joint[t - 1, prev_s]
-            + log_A[prev_s, curr_s]
-            + log_B[curr_s, sequence[t]]
-        )
-
-    return log_alpha_joint
-
 
 def compute_gradients(
     protein: Protein,
@@ -142,19 +112,19 @@ def apply_gradients(
 
 
 def build_tied_groups(
-    states: dict[str, State],
+    states: list[State],
     name_to_idx: dict[str, int],
 ) -> dict[str, list[int]]:
     groups: dict[str, list[int]] = {}
-    for name, state in states.items():
-        group = state.tie_group if state.tie_group else name
-        groups.setdefault(group, []).append(name_to_idx[name])
+    for state in states:
+        group = state.tie_group if state.tie_group else state.name
+        groups.setdefault(group, []).append(name_to_idx[state.name])
     return groups
 
 
 def cml_train(
     proteins: list[Protein],
-    states: dict[str, State],
+    states:list[State],
     n_iter: int = 100,
     learning_rate: float = 1.0,
     eps: float = 1e-10,

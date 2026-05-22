@@ -47,12 +47,19 @@ def main():
     emission(states, proteins)
     transition(states)
 
+    benchmark(states, 
+              proteins, 
+              [5,10,15], 
+              [50, 100,200,500], 
+              [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0])
+
+
+def benchmark(states, proteins, samples, n_iter, learning_rates):
     trained_A = None
     trained_B = None
-    
-    for r in [5,10,15]:
-        for n in [50, 100,200,500]:
-            for lr in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
+    for r in samples:
+        for n in n_iter:
+            for lr in learning_rates:
                 for i in range(r):
                     train = random.sample(proteins, 7)
                     test = [item for item in proteins if item not in train]

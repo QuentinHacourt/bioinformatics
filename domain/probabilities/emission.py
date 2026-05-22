@@ -42,10 +42,8 @@ def _count_amino_acid_per_group(proteins: list[Protein]) -> dict[str, dict[str, 
 
     return counts
 
-
-# TODO: just return a matrix
 def emission(
-    states: dict[str, State], proteins: list[Protein], pseudocount: float = 1.0
+    states: list[State], proteins: list[Protein], pseudocount: float = 1.0
 ) -> None:
     raw_counts = _count_amino_acid_per_group(proteins)
 
@@ -56,16 +54,16 @@ def emission(
     for group in all_tie_groups:
         amino_acid_counts = raw_counts.get(group, {})
         total = (
-            sum(amino_acid_counts.get(amino_acid, 0) for amino_acid in aa.amino_acids)
+            sum(amino_acid_counts.get(amino_acid, 0) for amino_acid in aa.AMINO_ACIDS)
             + 20 * pseudocount
         )
 
         emissions[group] = {
             amino_acid: (amino_acid_counts.get(amino_acid, 0) + pseudocount) / total
-            for amino_acid in aa.amino_acids
+            for amino_acid in aa.AMINO_ACIDS
         }
 
-        for state in states.values():
+        for state in states:
             group = state.tie_group if state.tie_group else state.name
             if group in emissions:
                 state.emissions = emissions[group]

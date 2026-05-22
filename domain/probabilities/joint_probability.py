@@ -19,7 +19,8 @@ def annotation_to_state_sequence(
     B: np.ndarray,
     pi: np.ndarray
 ) -> list[int]:
-    obs     = encode_sequence(annotated_sequence[0])
+
+    #obs     = encode_sequence(annotated_sequence[0])
     T       = len(annotated_sequence)
     N       = len(name_to_idx)
 
@@ -105,7 +106,7 @@ def joint_log_probability(
 
 def cml_log_probability(
     protein: Protein,
-    states: dict[str, State],
+    states: list[State],
 ) -> float:
    
     idx_to_name, name_to_idx = build_index(states)
@@ -120,12 +121,6 @@ def cml_log_probability(
     log_p_obs = logsumexp(log_alpha[-1, :])
 
     log_conditional = log_joint - log_p_obs
-
-    print(f"{protein.name}")
-    print(f"  log P(x,y):     {log_joint:.4f}")
-    print(f"  log P(x):       {log_p_obs:.4f}")
-    print(f"  log P(y|x):     {log_conditional:.4f}") 
-    print(f"  P(y|x):         {np.exp(log_conditional):.4e}")
 
     return log_conditional
 

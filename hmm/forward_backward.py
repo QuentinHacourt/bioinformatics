@@ -4,25 +4,25 @@ from scipy.special import logsumexp
 from domain.state.state import State
 from domain.protein import Protein
 
-AMINO_ACIDS = aa.amino_acids
-AA_TO_IDX = aa.amino_acid_to_index
+AMINO_ACIDS = aa.AMINO_ACIDS
+AA_TO_IDX = aa.AMINO_ACID_TO_INDEX
 
 
-def build_index(states: dict[str, State]) -> tuple[list[str], dict[str, int]]:
-    idx_to_name = sorted(states.keys())
-    name_to_idx = {name: i for i, name in enumerate(idx_to_name)}
+def build_index(states: list[State]) -> tuple[list[State], dict[str, int]]:
+    idx_to_name = sorted(states, key=lambda x: x.name)
+    name_to_idx = {state.name: i for i, state in enumerate(idx_to_name)}
     return idx_to_name, name_to_idx
 
 
 def build_transition_matrix(
-    states: dict[str, State],
+    states: list[State],
     name_to_idx: dict[str, int],
 ) -> np.ndarray:
     n = len(states)
     A = np.zeros((n, n))
 
-    for name, state in states.items():
-        i = name_to_idx[name]
+    for state in states:
+        i = name_to_idx[state.name]
         for target_name, prob in state.transitions.items():
             j = name_to_idx[target_name]
             A[i, j] = prob
@@ -31,14 +31,14 @@ def build_transition_matrix(
 
 
 def build_emission_matrix(
-    states: dict[str, State],
+    states: list[State],
     name_to_idx: dict[str, int],
 ) -> np.ndarray:
     n = len(states)
     B = np.zeros((n, len(AMINO_ACIDS)))
 
-    for name, state in states.items():
-        i = name_to_idx[name]
+    for state in states:
+        i = name_to_idx[state.name]
         for aa, prob in state.emissions.items():
             k = AA_TO_IDX[aa]
             B[i, k] = prob
@@ -47,7 +47,7 @@ def build_emission_matrix(
 
 
 def build_initial_distribution(
-    states: dict[str, State],
+    states: list[State],
     name_to_idx: dict[str, int],
     proteins: list[Protein] | None = None, 
 ) -> np.ndarray:
@@ -139,3 +139,33 @@ def run_forward_backward(protein, states):
 
     index = {"idx_to_name": idx_to_name, "name_to_idx": name_to_idx}
     return log_alpha, log_beta, index
+
+def forward_joint_log(
+    sequence: np.ndarray,
+    state_path: list[int],
+    A: np.ndarray,
+    B: np.ndarray,
+    pi: np.ndarray,
+) -> np.ndarray:
+    T = len(sequence)
+    N = A.shape[0]
+
+    log_A = np.log(np.where(A > 0, A, 1e-300))
+    log_B = np.log(np.where(B > 0, B, 1e-300))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+
+    log_alpha_joint = np.full((T, N), -np.inf)
+
+    s0 = state_path[0]
+    log_alpha_joint[0, s0] = log_pi[s0] + log_B[s0, sequence[0]]
+
+    for t in range(1, T):
+        prev_s = state_path[t - 1]
+        curr_s = state_path[t]
+        log_alpha_joint[t, curr_s] = (
+            log_alpha_joint[t - 1, prev_s]
+            + log_A[prev_s, curr_s]
+            + log_B[curr_s, sequence[t]]
+        )
+
+    return log_alpha_joint

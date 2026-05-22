@@ -6,11 +6,11 @@ from domain.state.state_type import StateType
 from collections import Counter, defaultdict
 
 
-def build_states() -> dict[str, State]:
-    states: dict[str, State] = {}
+def build_states() -> list[State]:
+    states:list[State] = []
 
     def add(name, stype, role, tie=None, absorbing=False):
-        states[name] = State(name, stype, role, tie, absorbing)
+        states.append(State(name, stype, role, tie, absorbing))
 
     # === Inner Loop Submodel ===
     # N-terminal
@@ -92,27 +92,26 @@ def count_states(states: dict[str, State]) -> None:
         print(f"    {group:<20} {n} states")
 
 
-def build_tie_groups(states: dict[str, State]) -> dict[str, dict[str, float]]:
+def build_tie_groups(states: list[State]) -> dict[str, dict[str, float]]:
     groups: dict[str, list[State]] = {}
 
-    for state in states.values():
+    for state in states:
         group_name = state.tie_group if state.tie_group else state.name
         groups.setdefault(group_name, []).append(state)
 
     group_emissions: dict[str, dict[str, float]] = {}
     for group_name, group_states in groups.items():
-        shared_emissions = {amino_acid: 1.0 / 20 for amino_acid in aa.amino_acids}
+        shared_emissions = {amino_acid: 1.0 / 20 for amino_acid in aa.AMINO_ACIDS}
         group_emissions[group_name] = shared_emissions
 
         for state in group_states:
             state.emissions = shared_emissions
-
     return group_emissions
 
 
-def verify_tying(states: dict[str, State]) -> None:
+def verify_tying(states: list[State]) -> None:
     groups: dict[str, list[State]] = defaultdict(list)
-    for state in states.values():
+    for state in states:
         group = state.tie_group if state.tie_group else state.name
         groups[group].append(state)
 

@@ -38,7 +38,7 @@ def viterbi(
     A: np.ndarray,
     B: np.ndarray,
     pi: np.ndarray,
-    idx_to_name: list[str],
+    idx_to_name: list[State],
 ) -> tuple[float, str]:
     """
     Standard Viterbi — most probable path through states.
@@ -71,7 +71,7 @@ def viterbi(
         path.append(backptr[t, path[-1]])
     path.reverse()
 
-    labeling = "".join(state_to_label(idx_to_name[s]) for s in path)
+    labeling = "".join(state_to_label(idx_to_name[s].name) for s in path)
     return log_prob, labeling
 
 
@@ -80,7 +80,7 @@ def n_best(
     A: np.ndarray,
     B: np.ndarray,
     pi: np.ndarray,
-    idx_to_name: list[str],
+    idx_to_name: list[State],
     N_hyp: int = 5, 
 ) -> tuple[float, str]:
   
@@ -99,7 +99,7 @@ def n_best(
                 Hypothesis(
                     log_prob=lp,
                     path=[s],
-                    labeling=state_to_label(idx_to_name[s]),
+                    labeling=state_to_label(idx_to_name[s].name),
                 )
             )
 
@@ -122,7 +122,7 @@ def n_best(
                     Hypothesis(
                         log_prob=new_lp,
                         path=hyp.path + [next_s],
-                        labeling=hyp.labeling + state_to_label(idx_to_name[next_s]),
+                        labeling=hyp.labeling + state_to_label(idx_to_name[next_s].name),
                     )
                 )
 
@@ -139,7 +139,7 @@ def n_best(
 
 def decode(
     protein: Protein,
-    states: dict[str, State],
+    states: list[State],
     trained_A: np.ndarray,
     trained_B: np.ndarray,
     method: str = "n_best", # n-best | viterbi
@@ -160,7 +160,7 @@ def decode(
 
 def evaluate(
     proteins: list[Protein],
-    states: dict[str, State],
+    states: list[State],
     trained_A: np.ndarray,
     trained_B: np.ndarray,
     method: str = "n_best",
