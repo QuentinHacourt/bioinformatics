@@ -127,45 +127,10 @@ def backward_log(sequence, A, B):
     return log_beta
 
 
-def run_forward_backward(protein, states):
-    idx_to_name, name_to_idx = build_index(states)
-    A = build_transition_matrix(states, name_to_idx)
-    B = build_emission_matrix(states, name_to_idx)
-    pi = build_initial_distribution(states, name_to_idx)
-    obs = encode_sequence(protein.sequence)
-
+def run_forward_backward(A, B, pi, obs):
+  
     log_alpha = forward_log(obs, A, B, pi)
     log_beta = backward_log(obs, A, B)
+    log_p_obs = logsumexp(log_alpha[-1,:])
 
-    index = {"idx_to_name": idx_to_name, "name_to_idx": name_to_idx}
-    return log_alpha, log_beta, index
-
-def forward_joint_log(
-    sequence: np.ndarray,
-    state_path: list[int],
-    A: np.ndarray,
-    B: np.ndarray,
-    pi: np.ndarray,
-) -> np.ndarray:
-    T = len(sequence)
-    N = A.shape[0]
-
-    log_A = np.log(np.where(A > 0, A, 1e-300))
-    log_B = np.log(np.where(B > 0, B, 1e-300))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
-
-    log_alpha_joint = np.full((T, N), -np.inf)
-
-    s0 = state_path[0]
-    log_alpha_joint[0, s0] = log_pi[s0] + log_B[s0, sequence[0]]
-
-    for t in range(1, T):
-        prev_s = state_path[t - 1]
-        curr_s = state_path[t]
-        log_alpha_joint[t, curr_s] = (
-            log_alpha_joint[t - 1, prev_s]
-            + log_A[prev_s, curr_s]
-            + log_B[curr_s, sequence[t]]
-        )
-
-    return log_alpha_joint
+    return log_alpha, log_beta, log_p_obs

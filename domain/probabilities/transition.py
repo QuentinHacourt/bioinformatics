@@ -10,6 +10,9 @@ def _get_states_by_role(states: list[State], role: StateRole) -> list[State]:
             int(state.name.split("_")[-1]) if state.name[-1].isdigit() else 0
         )
     )
+
+    tmp = [state.name for state in result]
+    print(tmp)
     return result
 
 
@@ -25,8 +28,9 @@ def _normalize(raw: dict[str, float]) -> dict[str, float]:
 def transition(states: list[State]) -> None:
     inner_ladder = _get_states_by_role(states, StateRole.INNER_LADDER)
     outer_ladder = _get_states_by_role(states, StateRole.OUTER_LADDER)
-    arom_top = _get_states_by_role(states, StateRole.AROMATIC_BELT)[:2]
-    arom_bottom = _get_states_by_role(states, StateRole.AROMATIC_BELT)[2:]
+    arom = _get_states_by_role(states, StateRole.AROMATIC_BELT)
+    arom_top = [state for state in arom if "tm_aromatic_top" in state.name]
+    arom_bottom = [state for state in arom if "tm_aromatic_bottom" in state.name]
     tm_ext = _get_states_by_role(states, StateRole.TM_EXTERIOR)
     tm_int = _get_states_by_role(states, StateRole.TM_INTERIOR)
 

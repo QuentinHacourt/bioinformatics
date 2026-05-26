@@ -40,11 +40,6 @@ def viterbi(
     pi: np.ndarray,
     idx_to_name: list[State],
 ) -> tuple[float, str]:
-    """
-    Standard Viterbi — most probable path through states.
-    Used as baseline and fallback.
-    Returns (log_prob, labeling string).
-    """
     T = len(obs)
     N = A.shape[0]
 
@@ -142,8 +137,8 @@ def decode(
     states: list[State],
     trained_A: np.ndarray,
     trained_B: np.ndarray,
-    method: str = "n_best", # n-best | viterbi
-    N_hyp: int = 100,
+    method: str = "n-best", # n-best | viterbi
+    N_hyp: int = 10,
 ) -> tuple[str, float]:
  
     idx_to_name, name_to_idx = build_index(states)
