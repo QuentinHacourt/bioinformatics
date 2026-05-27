@@ -1,5 +1,8 @@
 import numpy as np
 from pprint import pprint
+import warnings
+
+
 
 def annotation_to_state_sequence(
     annotated_sequence: str,
@@ -13,10 +16,10 @@ def annotation_to_state_sequence(
     T       = len(annotated_sequence)
     N       = len(name_to_idx)
 
-    log_A  = np.log(np.where(A  > 0, A,  1e-300))
-    log_B  = np.log(np.where(B  > 0, B,  1e-300))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
-
+    log_A = np.log(np.where(A > 0, A, 1e-16))
+    log_B = np.log(np.where(B > 0, B, 1e-16))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
+    
     def allowed(label_char: str) -> set[int]:
         if label_char == "I":
             return {
@@ -42,31 +45,26 @@ def annotation_to_state_sequence(
 
     for j in allowed(annotated_sequence[0]):
         dp[0, j] = log_pi[j] + log_B[j, obs[0]]
-
     for t in range(1, T):
         allowed_prev = allowed(annotated_sequence[t - 1])
         allowed_curr = allowed(annotated_sequence[t])
+        
         for j in allowed_curr:
             best_i, best_score = -1, -np.inf
             for i in allowed_prev:
-                s = dp[t-1, i] + log_A[i, j] + log_B[j, obs[t]]
-                if s > best_score:
-                    best_score, best_i = s, i
-
-            if best_i == -1:
-                raise ValueError(
-                    f"No valid predecessor at t={t} for state {j} — "
-                    "topology constraint is infeasible for this annotation."
-                )
-            dp[t, j]      = best_score
+                if log_A[i, j] > -1e10: 
+                    s = dp[t - 1, i] + log_A[i, j] + log_B[j, obs[t]]
+                    if s > best_score:
+                        best_score, best_i = s, i
+            
+            dp[t, j] = best_score
             backptr[t, j] = best_i
 
-        allowed_last = allowed(annotated_sequence[-1])
-        best_last    = max(allowed_last, key=lambda j: dp[-1, j])
+    allowed_last = allowed(annotated_sequence[-1])
+    best_last    = max(allowed_last, key=lambda j: dp[-1, j])
 
     path = [best_last]
     for t in range(T - 1, 0, -1):
         path.append(backptr[t, path[-1]])
     path.reverse()
-
     return path

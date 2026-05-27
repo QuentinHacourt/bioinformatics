@@ -1,11 +1,7 @@
 import random
-from pprint import pprint
-
 from domain.probabilities.emission import emission
-
 from domain.probabilities.transition import transition
 from domain.state.util import build_states
-
 from hmm.forward_backward import (
     build_emission_matrix,
     build_index,
@@ -31,7 +27,7 @@ def main():
               proteins, 
               [5], 
               [50], 
-              [1.0])
+              [0.001])
 
 def benchmark(states, proteins, samples, n_iter, learning_rates):
     idx_to_name, name_to_idx = build_index(states)
@@ -45,46 +41,46 @@ def benchmark(states, proteins, samples, n_iter, learning_rates):
     print(f"+++++++ TEST {proteins[0].name} +++++++++")
     test_state_sequence(proteins[0].labels, name_to_idx, idx_to_name, encode_sequence(proteins[0].sequence), transitions, emissions, initials)
 
-    # for r in samples:
-    #     for n in n_iter:
-    #         for lr in learning_rates:
-    #             for i in range(r):
-    #                 train = random.sample(proteins, 7)
-    #                 test = [item for item in proteins if item not in train]
-    #                 transitions, emissions = cml_train(train,
-    #                                                   transitions,
-    #                                                   emissions,
-    #                                                   initials,
-    #                                                   name_to_idx,
-    #                                                   tied_groups,
-    #                                                   n_iter=n, learning_rate=lr)
+    for r in samples:
+        for n in n_iter:
+            for lr in learning_rates:
+                for i in range(r):
+                    train = random.sample(proteins, 7)
+                    test = [item for item in proteins if item not in train]
+                    transitions, emissions = cml_train(train,
+                                                      transitions,
+                                                      emissions,
+                                                      initials,
+                                                      name_to_idx,
+                                                      tied_groups,
+                                                      n_iter=n, learning_rate=lr)
 
-    #                 print("\n--- Self-consistency test (N-best) ---")
-    #                 n_best = evaluate(test, 
-    #                                   states, 
-    #                                   transitions, 
-    #                                   emissions, 
-    #                                   method="n_best")
+                    print("\n--- Self-consistency test (N-best) ---")
+                    n_best = evaluate(test, 
+                                      states, 
+                                      transitions, 
+                                      emissions, 
+                                      method="n_best")
 
-    #                 print("\n--- Self-consistency test (Viterbi) ---")
-    #                 viterbi = evaluate(test, 
-    #                                    states, 
-    #                                    transitions, 
-    #                                    emissions, 
-    #                                    method="viterbi")
-    #                 protein = proteins[0]
-    #                 labeling, log_prob = decode(protein, 
-    #                                             states, 
-    #                                             transitions, 
-    #                                             emissions)
-    #                 print(f"\n{protein.name} predicted:  {labeling}...")
-    #                 print(f"{protein.name} true:        {protein.labels}...")
+                    print("\n--- Self-consistency test (Viterbi) ---")
+                    viterbi = evaluate(test, 
+                                       states, 
+                                       transitions, 
+                                       emissions, 
+                                       method="viterbi")
+                    protein = proteins[0]
+                    labeling, log_prob = decode(protein, 
+                                                states, 
+                                                transitions, 
+                                                emissions)
+                    print(f"\n{protein.name} predicted:  {labeling}...")
+                    print(f"{protein.name} true:        {protein.labels}...")
 
-    #                 with open(f"output/{n}-{r}-{lr}-{i}.txt", "w", encoding="utf-8") as f:
-    #                     f.writelines(n_best)
-    #                     f.writelines(viterbi)
-    #                     f.write(f"\n{protein.name} predicted:  {labeling}...")
-    #                     f.write(f"\n{protein.name} true:        {protein.labels}...")
+                    with open(f"output/{n}-{r}-{lr}-{i}.txt", "w", encoding="utf-8") as f:
+                        f.writelines(n_best)
+                        f.writelines(viterbi)
+                        f.write(f"\n{protein.name} predicted:  {labeling}...")
+                        f.write(f"\n{protein.name} true:        {protein.labels}...")
 
 
 def print_proteins(proteins, states, transitions, emissions

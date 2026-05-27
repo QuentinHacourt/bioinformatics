@@ -16,7 +16,10 @@ ROLE_TO_TIE_GROUP: dict[StateRole, str] = {
 }
 
 LABEL_TO_ROLE: dict[str, list[StateRole]] = {
-    "I": [StateRole.INNER_LADDER],
+    "I": [
+        StateRole.INNER_LADDER,
+        StateRole.N_TERMINAL,
+        StateRole.C_TERMINAL],
     "O": [StateRole.OUTER_LADDER, StateRole.GLOBULAR],
     "T": [
         StateRole.AROMATIC_BELT,
@@ -39,7 +42,6 @@ def _count_amino_acid_per_group(proteins: list[Protein]) -> dict[str, dict[str, 
             for role in roles:
                 group = ROLE_TO_TIE_GROUP[role]
                 counts[group][amino_acid] += 1
-
     return counts
 
 def emission(
@@ -63,7 +65,7 @@ def emission(
             for amino_acid in aa.AMINO_ACIDS
         }
 
-        for state in states:
-            group = state.tie_group if state.tie_group else state.name
-            if group in emissions:
-                state.emissions = emissions[group]
+    for state in states:
+        group = state.tie_group if state.tie_group else state.name
+        if group in emissions:
+            state.emissions = emissions[group]

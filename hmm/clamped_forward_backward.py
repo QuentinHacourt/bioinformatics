@@ -1,14 +1,14 @@
 import numpy as np
 
 def run_clamped_forward_backward(obs, state_path, A, B, pi):
-    log_A  = np.log(np.where(A  > 0, A,  1e-300))
-    log_B  = np.log(np.where(B  > 0, B,  1e-300))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+    log_A  = np.log(np.where(A  > 0, A,  1e-16))
+    log_B  = np.log(np.where(B  > 0, B,  1e-16))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
 
     log_alpha_clamped = forward_clamped_log(obs, state_path, log_A, log_B, log_pi)
     log_p_joint       = log_alpha_clamped[-1, state_path[-1]]
 
-    log_beta_clamped = backward_clamped_log(state_path, A, B, obs)
+    log_beta_clamped = backward_clamped_log(state_path, log_A, log_B, obs)
     
     return log_alpha_clamped, log_beta_clamped, log_p_joint
 

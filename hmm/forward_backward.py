@@ -92,9 +92,9 @@ def forward_log(sequence, A, B, pi):
     T = sequence.shape[0]
     N = A.shape[0]
 
-    log_A = np.log(np.where(A > 0, A, 1e-300))
-    log_B = np.log(np.where(B > 0, B, 1e-300))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+    log_A = np.log(np.where(A > 0, A, 1e-16))
+    log_B = np.log(np.where(B > 0, B, 1e-16))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
 
     log_alpha = np.full((T, N), -np.inf)
     log_alpha[0, :] = log_pi + log_B[:, sequence[0]]
@@ -112,8 +112,8 @@ def backward_log(sequence, A, B):
     T = sequence.shape[0]
     N = A.shape[0]
 
-    log_A = np.log(np.where(A > 0, A, 1e-300))
-    log_B = np.log(np.where(B > 0, B, 1e-300))
+    log_A = np.log(np.where(A > 0, A, 1e-16))
+    log_B = np.log(np.where(B > 0, B, 1e-16))
 
     log_beta = np.full((T, N), -np.inf)
     log_beta[T - 1, :] = 0.0  

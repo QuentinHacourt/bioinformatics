@@ -48,14 +48,14 @@ def cml_train(
 
             log_alpha_clamped, log_beta_clamped, log_p_joint = run_clamped_forward_backward(obs, state_path, A, B, pi)
 
-            total_cml += log_p_joint - log_p_obs
+            total_cml += log_p_joint - log_p_obs 
 
             correct_A, correct_B, expected_A, expected_B = compute_expected_counts(A, B, obs, state_path, log_alpha, log_beta, log_p_obs)
 
             grad_A += correct_A - expected_A
             grad_B += correct_B - expected_B
 
-        A, B = apply_update(A, B, grad_A, grad_B, learning_rate, eps, tied_groups)
+            A, B = apply_update(A, B, grad_A, grad_B, learning_rate, eps, tied_groups)
 
         print(f"  iter {iteration+1:>3}/{n_iter}  CML objective: {total_cml:.4f}")
 
@@ -71,22 +71,10 @@ def apply_update(A, B, grad_A, grad_B, learning_rate, eps, tied_groups):
     A_new = A + learning_rate * grad_A
     B_new = B + learning_rate * grad_B
 
-    A_new = np.clip(A_new, eps, None)
-    B_new = np.clip(B_new, eps, None)
-    A_new = np.where(A > 0, A_new, 0.0)
-    B_new = np.where(B > 0, B_new, 0.0)
-
     A_row_sums = A_new.sum(axis=1, keepdims=True)
     B_row_sums = B_new.sum(axis=1, keepdims=True)
     A_new = np.where(A_row_sums > 0, A_new / A_row_sums, A_new)
     B_new = np.where(B_row_sums > 0, B_new / B_row_sums, B_new)
-
-    for state_indices in tied_groups.values():
-        if len(state_indices) < 2:
-            continue
-        avg_row = B_new[state_indices, :].mean(axis=0)
-        avg_row = avg_row / avg_row.sum()
-        B_new[state_indices, :] = avg_row
 
     return A_new, B_new
 
@@ -105,8 +93,8 @@ def compute_expected_counts(
     N = A.shape[0]
     K = B.shape[1]
 
-    log_A = np.log(np.where(A > 0, A, 1e-300))
-    log_B = np.log(np.where(B > 0, B, 1e-300))
+    log_A = np.log(np.where(A > 0, A, 1e-16))
+    log_B = np.log(np.where(B > 0, B, 1e-16))
     
     correct_A = np.zeros((N, N))
     correct_B = np.zeros((N, K))
@@ -138,7 +126,7 @@ def compute_expected_counts(
     gamma = np.exp(log_gamma)  
 
     for k in range(K):
-        mask = obs == k
+        mask: bool = obs == k
         expected_B[:, k] = gamma[mask, :].sum(axis=0)
 
     return correct_A, correct_B, expected_A, expected_B

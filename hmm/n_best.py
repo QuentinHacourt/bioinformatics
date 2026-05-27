@@ -43,9 +43,9 @@ def viterbi(
     T = len(obs)
     N = A.shape[0]
 
-    log_A = np.log(np.where(A > 0, A, 1e-300))
-    log_B = np.log(np.where(B > 0, B, 1e-300))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+    log_A = np.log(np.where(A > 0, A, 1e-16))
+    log_B = np.log(np.where(B > 0, B, 1e-16))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
 
     dp = np.full((T, N), -np.inf)
     backptr = np.zeros((T, N), dtype=int)
@@ -76,15 +76,15 @@ def n_best(
     B: np.ndarray,
     pi: np.ndarray,
     idx_to_name: list[State],
-    N_hyp: int = 5, 
+    N_hyp: int = 25, 
 ) -> tuple[float, str]:
   
     T = len(obs)
     N = A.shape[0]
 
-    log_A = np.log(np.where(A > 0, A, 1e-300))
-    log_B = np.log(np.where(B > 0, B, 1e-300))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-300))
+    log_A = np.log(np.where(A > 0, A, 1e-16))
+    log_B = np.log(np.where(B > 0, B, 1e-16))
+    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
 
     hypotheses: list[Hypothesis] = []
     for s in range(N):

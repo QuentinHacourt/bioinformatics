@@ -10,9 +10,6 @@ def _get_states_by_role(states: list[State], role: StateRole) -> list[State]:
             int(state.name.split("_")[-1]) if state.name[-1].isdigit() else 0
         )
     )
-
-    tmp = [state.name for state in result]
-    print(tmp)
     return result
 
 
@@ -23,8 +20,6 @@ def _normalize(raw: dict[str, float]) -> dict[str, float]:
 
     return {k: v / total for k, v in raw.items()}
 
-
-# TODO: just return a matrix
 def transition(states: list[State]) -> None:
     inner_ladder = _get_states_by_role(states, StateRole.INNER_LADDER)
     outer_ladder = _get_states_by_role(states, StateRole.OUTER_LADDER)
@@ -46,6 +41,12 @@ def transition(states: list[State]) -> None:
         {
             n_term.name: 1.0,
             inner_ladder[0].name: 1.0,
+            inner_ladder[1].name: 1.0,
+            inner_ladder[2].name: 1.0,
+            inner_ladder[3].name: 1.0,
+            inner_ladder[4].name: 1.0,
+            inner_ladder[5].name: 1.0,
+            arom_top[0].name: 1.0
         }
     )
 
