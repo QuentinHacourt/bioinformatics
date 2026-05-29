@@ -26,7 +26,7 @@
 	unnumberedsections, % Comment to enable section numbering
 	twoside, % Two side traditional mode where headers and footers change between odd and even pages, comment this option to make them fixed
 ]{LTJournalArticle}
-
+\usepackage[toc,page]{appendix}
 \addbibresource{sample.bib} % BibLaTeX bibliography file
 
 %\runninghead{Shortened Running Article Title} % A shortened article title to appear in the running head, leave this command empty for no running head
@@ -98,11 +98,26 @@
 	\label{tab:dataset}
 \end{table*}
 
+\begin{table*}
+	\caption{The dataset of outer membrane proteins used for training and testing of the Hidden Markov Model~\cite{bagos_hidden_2004}}
+	\centering
+	\begin{tabular}{L{0.3\linewidth} L{0.2\linewidth} L{0.1\linewidth}L{0.3\linewidth}L{0.3\linewidth}L{0.4\linewidth}} 
+        \toprule
+        Name          & Number of $\beta$-strands & PDB code & Organism                     \\ \midrule
+        nspA          & 8                         & 1P4T     & Neisseria meningitidis       \\
+        btuB          & 22                        & 1NQE     & Escherichia coli                \\
+        nalP          & 12                        & 1UYN     &  Neisseria meningitidis        \\
+        ompW          & 8                         & 2F1V     & Escherichia coli  \\
+        \bottomrule
+    \end{tabular}
+	\label{tab:testset}
+\end{table*}
+
 \subsection{Hidden Markov Model}
 
 \begin{figure*}[h] % Two column figure (notice the starred environment)
-	\includegraphics[width=\linewidth]{hmm_schematic.png}
-	\caption{Visual simplified representation of HMM. This HMM consists of three submodels that each models a certain part of the protein sequence.}
+	\includegraphics[width=\linewidth]{Full_schematic.png}
+	\caption{Visual and slightly adapted architecture representation of the HMM. This HMM consists of three submodels that each models a certain part of the protein sequence. The color coding of this representation is according to the original paper.}
 	\label{fig:hmm_schematic}
 \end{figure*}
 
@@ -123,7 +138,6 @@
 %----------------------------------------------------------------------------------------
 
 \printbibliography% Output the bibliography
-
 %----------------------------------------------------------------------------------------
 
 \end{document}
