@@ -1,7 +1,7 @@
 import numpy as np
 from domain.data_wrapper import DataWrapper
 from hmm.clamped_forward_backward import run_clamped_forward_backward
-from domain.probabilities.joint_probability import (
+from domain.probabilities.util import (
     annotation_to_state_sequence,
     encode_sequence,
 )
@@ -12,7 +12,7 @@ def cml_train(
     dw: DataWrapper,
     n_iter: int = 100,
     learning_rate: float = 1.0,
-    eps: float = 1e-6,
+    eps: float = 1e-2,
 ) -> tuple[np.ndarray, np.ndarray]:
 
     print(f"Starting CML training: {n_iter} iterations, lr={learning_rate}")
@@ -34,9 +34,7 @@ def cml_train(
                 dw.log_A, dw.log_B, dw.log_pi, obs
             )
 
-            log_alpha_clamped, log_beta_clamped, log_p_joint = (
-                run_clamped_forward_backward(dw, state_path, obs)
-            )
+            _, _, log_p_joint = run_clamped_forward_backward(dw, state_path, obs)
 
             total_cml += log_p_joint - log_p_obs
 
@@ -52,7 +50,7 @@ def cml_train(
         grad_B /= num_proteins
         _apply_update(dw, grad_A, grad_B, learning_rate)
 
-        print(f"  iter {iteration+1:>3}/{n_iter}  CML objective: {total_cml:.4f}")
+        print(f"  iter {iteration+1:>3}/{n_iter}")
 
         if prev_cml is not None and abs(total_cml - prev_cml) / abs(prev_cml) < eps:
             print(f"  Converged at iteration {iteration+1}")
@@ -63,42 +61,15 @@ def cml_train(
 
 
 def _apply_update(dw, grad_A, grad_B, learning_rate):
-    # dw.log_A = dw.log_A + learning_rate * grad_A
-    # dw.log_B = dw.log_B + learning_rate * grad_B
-
-    # A_new = np.exp(dw.log_A)
-    # B_new = np.exp(dw.log_B)
-
-    # A_row_sums = A_new.sum(axis=1, keepdims=True)
-    # B_row_sums = B_new.sum(axis=1, keepdims=True)
-
-    # A_new = np.where(A_row_sums > 0, A_new / A_row_sums, A_new)
-    # B_new = np.where(B_row_sums > 0, B_new / B_row_sums, B_new)
-
-    # for state_indices in dw.tied_groups.values():
-    #     if len(state_indices) < 2:
-    #         continue
-    #     avg_row = B_new[state_indices, :].mean(axis=0)
-    #     if avg_row.sum() > 0:
-    #         avg_row = avg_row / avg_row.sum()
-    #     B_new[state_indices, :] = avg_row
-
-    # dw.A = A_new
-    # dw.B = B_new
-    # dw.log_A = np.log(np.where(dw.A > 0, dw.A, 1e-16))
-    # dw.log_B = np.log(np.where(dw.B > 0, dw.B, 1e-16))
-    # 1. Perform gradient ascent step
     A_new = dw.A + learning_rate * grad_A
     B_new = dw.B + learning_rate * grad_B
 
-    # 2. Renormalize rows to preserve valid probability distributions (sum to 1)
     A_row_sums = A_new.sum(axis=1, keepdims=True)
     A_new = np.where(A_row_sums > 0, A_new / A_row_sums, A_new)
 
     B_row_sums = B_new.sum(axis=1, keepdims=True)
     B_new = np.where(B_row_sums > 0, B_new / B_row_sums, B_new)
 
-    # 3. Apply state tying constraints by averaging emission rows across tied groups
     for state_indices in dw.tied_groups.values():
         if len(state_indices) < 2:
             continue
@@ -107,7 +78,6 @@ def _apply_update(dw, grad_A, grad_B, learning_rate):
             avg_row = avg_row / avg_row.sum()
         B_new[state_indices, :] = avg_row
 
-    # 4. Save the updated parameters and pre-calculate logs back into the data wrapper
     dw.A = A_new
     dw.B = B_new
     dw.log_A = np.log(np.where(dw.A > 0, dw.A, 1e-16))

@@ -1,15 +1,15 @@
 import numpy as np
-from dataclasses import dataclass, field
-from domain.probabilities.joint_probability import (
+from dataclasses import dataclass
+from domain.probabilities.util import (
     build_index,
     build_initial_distribution,
     encode_sequence,
 )
 from domain.protein import Protein
 from domain.state.state import State
+from utils.print_report import print_viterbi
 
 
-# Map state names to their label character
 def state_to_label(state_name: str) -> str:
     if "inner" in state_name:
         return "I"
@@ -17,18 +17,6 @@ def state_to_label(state_name: str) -> str:
         return "O"
     else:
         return "T"
-
-
-@dataclass
-class Hypothesis:
-    """One candidate labeling being tracked by N-best."""
-
-    log_prob: float  # cumulative log probability
-    path: list[int]  # sequence of state indices
-    labeling: str  # sequence of I/T/O characters
-
-    def label(self, idx_to_name: list[str]) -> str:
-        return self.labeling
 
 
 def viterbi(
@@ -68,86 +56,18 @@ def viterbi(
     return log_prob, labeling
 
 
-def n_best(
-    obs: np.ndarray,
-    A: np.ndarray,
-    B: np.ndarray,
-    pi: np.ndarray,
-    idx_to_name: list[State],
-    N_hyp: int = 25,
-) -> tuple[float, str]:
-
-    T = len(obs)
-    N = A.shape[0]
-
-    log_A = np.log(np.where(A > 0, A, 1e-16))
-    log_B = np.log(np.where(B > 0, B, 1e-16))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
-
-    hypotheses: list[Hypothesis] = []
-    for s in range(N):
-        lp = log_pi[s] + log_B[s, obs[0]]
-        if lp > -np.inf:
-            hypotheses.append(
-                Hypothesis(
-                    log_prob=lp,
-                    path=[s],
-                    labeling=state_to_label(idx_to_name[s].name),
-                )
-            )
-
-    hypotheses.sort(key=lambda h: h.log_prob, reverse=True)
-    hypotheses = hypotheses[:N_hyp]
-
-    for t in range(1, T):
-        candidates: list[Hypothesis] = []
-
-        for hyp in hypotheses:
-            prev_s = hyp.path[-1]
-            for next_s in range(N):
-                trans_lp = log_A[prev_s, next_s]
-                if trans_lp == -np.inf:
-                    continue
-
-                new_lp = hyp.log_prob + trans_lp + log_B[next_s, obs[t]]
-
-                candidates.append(
-                    Hypothesis(
-                        log_prob=new_lp,
-                        path=hyp.path + [next_s],
-                        labeling=hyp.labeling
-                        + state_to_label(idx_to_name[next_s].name),
-                    )
-                )
-
-        if not candidates:
-            print(f"Warning: no candidates at t={t}, falling back to Viterbi")
-            return viterbi(obs, A, B, pi, idx_to_name)
-
-        candidates.sort(key=lambda h: h.log_prob, reverse=True)
-        hypotheses = candidates[:N_hyp]
-
-    best = hypotheses[0]
-    return best.log_prob, best.labeling
-
-
 def decode(
     protein: Protein,
     states: list[State],
     trained_A: np.ndarray,
     trained_B: np.ndarray,
-    method: str = "n-best",  # n-best | viterbi
-    N_hyp: int = 10,
 ) -> tuple[str, float]:
 
     idx_to_name, name_to_idx = build_index(states)
     pi = build_initial_distribution(states, name_to_idx)
     obs = encode_sequence(protein.sequence)
 
-    if method == "viterbi":
-        log_prob, labeling = viterbi(obs, trained_A, trained_B, pi, idx_to_name)
-    else:
-        log_prob, labeling = n_best(obs, trained_A, trained_B, pi, idx_to_name, N_hyp)
+    log_prob, labeling = viterbi(obs, trained_A, trained_B, pi, idx_to_name)
 
     return labeling, log_prob
 
@@ -157,15 +77,15 @@ def evaluate(
     states: list[State],
     trained_A: np.ndarray,
     trained_B: np.ndarray,
-    method: str = "n_best",
-) -> list[str]:
+) -> tuple[list[str], dict[str, int], float]:
 
     total_residues = 0
     correct = 0
     temp_res: list[str] = []
+    scores = {}
 
     for protein in proteins:
-        predicted, log_prob = decode(protein, states, trained_A, trained_B, method)
+        predicted, log_prob = decode(protein, states, trained_A, trained_B)
         true_labels = protein.labels
 
         if len(predicted) != len(true_labels):
@@ -176,6 +96,8 @@ def evaluate(
         accuracy = matches / len(true_labels) * 100
         total_residues += len(true_labels)
         correct += matches
+
+        scores[protein.name] = accuracy
 
         print(
             f"  {protein.name:<10} accuracy: {accuracy:5.1f}%  "
@@ -192,4 +114,6 @@ def evaluate(
         f"\nOverall per-residue accuracy: {overall:.2f}\n({correct}/{total_residues} residues correct)\n\n"
     )
 
-    return temp_res
+    print_viterbi(scores, overall)
+
+    return temp_res, scores, overall

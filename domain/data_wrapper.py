@@ -7,13 +7,13 @@ import numpy as np
 
 from domain.probabilities.emission import emission
 from domain.state.util import build_states
-from domain.probabilities.joint_probability import (
+from domain.probabilities.util import (
     build_emission_matrix,
     build_index,
     build_initial_distribution,
     build_transition_matrix,
+    build_tied_groups,
 )
-from domain.probabilities.joint_probability import build_tied_groups
 from utils.xml_reader import collect_data
 
 

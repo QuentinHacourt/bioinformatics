@@ -1,6 +1,4 @@
 import numpy as np
-from pprint import pprint
-import warnings
 from domain.amino_acid import AMINO_ACID_TO_INDEX, AMINO_ACIDS
 
 from domain.protein import Protein

@@ -20,6 +20,7 @@ def _normalize(raw: dict[str, float]) -> dict[str, float]:
 
     return {k: v / total for k, v in raw.items()}
 
+
 def transition(states: list[State]) -> None:
     inner_ladder = _get_states_by_role(states, StateRole.INNER_LADDER)
     outer_ladder = _get_states_by_role(states, StateRole.OUTER_LADDER)
@@ -33,9 +34,6 @@ def transition(states: list[State]) -> None:
     c_term = [state for state in states if state.name == "inner_c_term"][0]
     globular = [state for state in states if state.name == "outer_globular"][0]
 
-    MIN_STRAND = 7
-    MAX_STRAND = 17
-
     # === N-terminal ===
     n_term.transitions = _normalize(
         {
@@ -46,7 +44,7 @@ def transition(states: list[State]) -> None:
             inner_ladder[3].name: 1.0,
             inner_ladder[4].name: 1.0,
             inner_ladder[5].name: 1.0,
-            arom_top[0].name: 1.0
+            arom_top[0].name: 1.0,
         }
     )
 
