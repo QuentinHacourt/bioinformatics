@@ -28,7 +28,7 @@ def print_viterbi(data: dict[str, int], overall):
     for protein, score in data.items():
         report += f"{protein}       accuracy    {score:.2f}%\n"
 
-    report += f"Overall score:         {overall:.2f}%"
+    report += f"Overall score:         {overall:.2f}%\n"
     print(report)
     with open(FILENAME, "a", encoding="utf-8") as f:
         f.write(report)

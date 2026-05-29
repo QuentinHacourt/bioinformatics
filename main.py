@@ -12,7 +12,7 @@ def main():
     dw = DataWrapper()
     benchmark(
         dw,
-        5,
+        10,
         30,
         0.05,
     )
