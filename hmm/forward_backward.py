@@ -8,115 +8,27 @@ AMINO_ACIDS = aa.AMINO_ACIDS
 AA_TO_IDX = aa.AMINO_ACID_TO_INDEX
 
 
-def build_index(states: list[State]) -> tuple[list[State], dict[str, int]]:
-    idx_to_name = sorted(states, key=lambda x: x.name)
-    name_to_idx = {state.name: i for i, state in enumerate(idx_to_name)}
-    return idx_to_name, name_to_idx
-
-
-def build_transition_matrix(
-    states: list[State],
-    name_to_idx: dict[str, int],
-) -> np.ndarray:
-    n = len(states)
-    A = np.zeros((n, n))
-
-    for state in states:
-        i = name_to_idx[state.name]
-        for target_name, prob in state.transitions.items():
-            j = name_to_idx[target_name]
-            A[i, j] = prob
-
-    return A
-
-
-def build_emission_matrix(
-    states: list[State],
-    name_to_idx: dict[str, int],
-) -> np.ndarray:
-    n = len(states)
-    B = np.zeros((n, len(AMINO_ACIDS)))
-
-    for state in states:
-        i = name_to_idx[state.name]
-        for aa, prob in state.emissions.items():
-            k = AA_TO_IDX[aa]
-            B[i, k] = prob
-
-    return B
-
-
-def build_initial_distribution(
-    states: list[State],
-    name_to_idx: dict[str, int],
-    proteins: list[Protein] | None = None, 
-) -> np.ndarray:
-    pi = np.zeros(len(states))
-
-    if proteins is None:
-        pi[name_to_idx["inner_n_term"]] = 1.0
-        return pi
-
-    starts = {"I": 0, "O": 0, "T": 0}
-    for protein in proteins:
-        if protein.labels:
-            starts[protein.labels[0]] = starts.get(protein.labels[0], 0) + 1
-
-    total = sum(starts.values())
-    print(f"  Start label distribution: {starts}")
-
-    inner_start = name_to_idx["inner_n_term"]
-    outer_start = name_to_idx["outer_ladder_0"]
-
-    pi[inner_start] = starts.get("I", 0) / total
-    pi[outer_start] = starts.get("O", 0) / total
-    
-    if starts.get("T", 0) > 0:
-        pi[name_to_idx["tm_aromatic_top_0"]] = starts["T"] / total
-
-    return pi
-
-
-def encode_sequence(sequence: str) -> np.ndarray:
-    encoded = []
-    for aa in sequence:
-        if aa in AA_TO_IDX:
-            encoded.append(AA_TO_IDX[aa])
-        else:
-            print(f"Warning: unknown amino acid '{aa}', skipping.")
-
-    return np.array(encoded, dtype=int)
-
-
-def forward_log(sequence, A, B, pi):
+def forward_log(sequence, log_A, log_B, log_pi):
     T = sequence.shape[0]
-    N = A.shape[0]
-
-    log_A = np.log(np.where(A > 0, A, 1e-16))
-    log_B = np.log(np.where(B > 0, B, 1e-16))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
+    N = log_A.shape[0]
 
     log_alpha = np.full((T, N), -np.inf)
     log_alpha[0, :] = log_pi + log_B[:, sequence[0]]
 
     for t in range(1, T):
         log_alpha[t, :] = (
-            logsumexp(log_alpha[t - 1, :, None] + log_A, axis=0)
-            + log_B[:, sequence[t]]
+            logsumexp(log_alpha[t - 1, :, None] + log_A, axis=0) + log_B[:, sequence[t]]
         )
 
     return log_alpha
 
 
-def backward_log(sequence, A, B):
+def backward_log(sequence, log_A, log_B):
     T = sequence.shape[0]
-    N = A.shape[0]
-
-    log_A = np.log(np.where(A > 0, A, 1e-16))
-    log_B = np.log(np.where(B > 0, B, 1e-16))
+    N = log_A.shape[0]
 
     log_beta = np.full((T, N), -np.inf)
-    log_beta[T - 1, :] = 0.0  
+    log_beta[T - 1, :] = 0.0
 
     for t in range(T - 2, -1, -1):
         log_beta[t, :] = logsumexp(
@@ -127,10 +39,10 @@ def backward_log(sequence, A, B):
     return log_beta
 
 
-def run_forward_backward(A, B, pi, obs):
-  
-    log_alpha = forward_log(obs, A, B, pi)
-    log_beta = backward_log(obs, A, B)
-    log_p_obs = logsumexp(log_alpha[-1,:])
+def run_forward_backward(log_A, log_B, log_pi, obs):
+
+    log_alpha = forward_log(obs, log_A, log_B, log_pi)
+    log_beta = backward_log(obs, log_A, log_B)
+    log_p_obs = logsumexp(log_alpha[-1, :])
 
     return log_alpha, log_beta, log_p_obs

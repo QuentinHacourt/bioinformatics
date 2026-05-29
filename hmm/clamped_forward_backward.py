@@ -1,16 +1,16 @@
 import numpy as np
 
-def run_clamped_forward_backward(obs, state_path, A, B, pi):
-    log_A  = np.log(np.where(A  > 0, A,  1e-16))
-    log_B  = np.log(np.where(B  > 0, B,  1e-16))
-    log_pi = np.log(np.where(pi > 0, pi, 1e-16))
 
-    log_alpha_clamped = forward_clamped_log(obs, state_path, log_A, log_B, log_pi)
-    log_p_joint       = log_alpha_clamped[-1, state_path[-1]]
+def run_clamped_forward_backward(dw, state_path, obs):
+    log_alpha_clamped = forward_clamped_log(
+        obs, state_path, dw.log_A, dw.log_B, dw.log_pi
+    )
+    log_p_joint = log_alpha_clamped[-1, state_path[-1]]
 
-    log_beta_clamped = backward_clamped_log(state_path, log_A, log_B, obs)
-    
+    log_beta_clamped = backward_clamped_log(state_path, dw.log_A, dw.log_B, obs)
+
     return log_alpha_clamped, log_beta_clamped, log_p_joint
+
 
 def forward_clamped_log(
     sequence: np.ndarray,
@@ -21,7 +21,7 @@ def forward_clamped_log(
 ) -> np.ndarray:
     T = len(sequence)
     N = log_A.shape[0]
-    
+
     log_alpha_joint = np.full((T, N), -np.inf)
 
     s0 = state_path[0]
@@ -38,12 +38,13 @@ def forward_clamped_log(
 
     return log_alpha_joint
 
+
 def backward_clamped_log(state_path, log_A, log_B, obs):
     T = len(obs)
     N = log_A.shape[0]
 
     log_beta_clamped = np.full((T, N), -np.inf)
-    log_beta_clamped[T-1, state_path[T-1]] = 0.0
+    log_beta_clamped[T - 1, state_path[T - 1]] = 0.0
 
     for t in range(T - 2, -1, -1):
         curr_s = state_path[t]

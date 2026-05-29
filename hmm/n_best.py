@@ -1,9 +1,7 @@
 import numpy as np
 from dataclasses import dataclass, field
-from hmm.forward_backward import (
+from domain.probabilities.joint_probability import (
     build_index,
-    build_transition_matrix,
-    build_emission_matrix,
     build_initial_distribution,
     encode_sequence,
 )
@@ -76,9 +74,9 @@ def n_best(
     B: np.ndarray,
     pi: np.ndarray,
     idx_to_name: list[State],
-    N_hyp: int = 25, 
+    N_hyp: int = 25,
 ) -> tuple[float, str]:
-  
+
     T = len(obs)
     N = A.shape[0]
 
@@ -117,7 +115,8 @@ def n_best(
                     Hypothesis(
                         log_prob=new_lp,
                         path=hyp.path + [next_s],
-                        labeling=hyp.labeling + state_to_label(idx_to_name[next_s].name),
+                        labeling=hyp.labeling
+                        + state_to_label(idx_to_name[next_s].name),
                     )
                 )
 
@@ -137,10 +136,10 @@ def decode(
     states: list[State],
     trained_A: np.ndarray,
     trained_B: np.ndarray,
-    method: str = "n-best", # n-best | viterbi
+    method: str = "n-best",  # n-best | viterbi
     N_hyp: int = 10,
 ) -> tuple[str, float]:
- 
+
     idx_to_name, name_to_idx = build_index(states)
     pi = build_initial_distribution(states, name_to_idx)
     obs = encode_sequence(protein.sequence)
@@ -160,7 +159,7 @@ def evaluate(
     trained_B: np.ndarray,
     method: str = "n_best",
 ) -> list[str]:
- 
+
     total_residues = 0
     correct = 0
     temp_res: list[str] = []
@@ -182,11 +181,15 @@ def evaluate(
             f"  {protein.name:<10} accuracy: {accuracy:5.1f}%  "
             f"log_prob: {log_prob:.1f}  len: {len(true_labels)}"
         )
-        temp_res.append(f"{protein.name:<10}\t accuracy: {accuracy:5.1f},\t log_prob: {log_prob:.1f}\t  len: {len(true_labels)}\n")
-    
+        temp_res.append(
+            f"{protein.name:<10}\t accuracy: {accuracy:5.1f},\t log_prob: {log_prob:.1f}\t  len: {len(true_labels)}\n"
+        )
+
     overall = correct / total_residues * 100 if total_residues > 0 else 0
     print(f"\nOverall per-residue accuracy: {overall:.2f}\n")
     print(f"  ({correct}/{total_residues} residues correct)\n")
-    temp_res.append(f"\nOverall per-residue accuracy: {overall:.2f}\n({correct}/{total_residues} residues correct)\n\n")
+    temp_res.append(
+        f"\nOverall per-residue accuracy: {overall:.2f}\n({correct}/{total_residues} residues correct)\n\n"
+    )
 
     return temp_res
