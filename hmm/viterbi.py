@@ -77,11 +77,10 @@ def evaluate(
     states: list[State],
     trained_A: np.ndarray,
     trained_B: np.ndarray,
-) -> tuple[list[str], dict[str, int], float]:
+) -> tuple[ dict[str, int], float]:
 
     total_residues = 0
     correct = 0
-    temp_res: list[str] = []
     scores = {}
 
     for protein in proteins:
@@ -99,21 +98,8 @@ def evaluate(
 
         scores[protein.name] = accuracy
 
-        print(
-            f"  {protein.name:<10} accuracy: {accuracy:5.1f}%  "
-            f"log_prob: {log_prob:.1f}  len: {len(true_labels)}"
-        )
-        temp_res.append(
-            f"{protein.name:<10}\t accuracy: {accuracy:5.1f},\t log_prob: {log_prob:.1f}\t  len: {len(true_labels)}\n"
-        )
-
     overall = correct / total_residues * 100 if total_residues > 0 else 0
-    print(f"\nOverall per-residue accuracy: {overall:.2f}\n")
-    print(f"  ({correct}/{total_residues} residues correct)\n")
-    temp_res.append(
-        f"\nOverall per-residue accuracy: {overall:.2f}\n({correct}/{total_residues} residues correct)\n\n"
-    )
 
     print_viterbi(scores, overall)
 
-    return temp_res, scores, overall
+    return scores, overall

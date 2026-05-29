@@ -6,6 +6,7 @@ from hmm.cml_train import cml_train
 # from hmm.n_best import decode, evaluate
 from utils.print_report import print_labels, print_report, print_viterbi
 from hmm.viterbi import evaluate, decode
+from utils.xml_reader import collect_data
 
 
 def main():
@@ -16,6 +17,9 @@ def main():
         30,
         0.05,
     )
+
+    proteins = collect_data("data/proteins/test/")
+    viterbi, _, _ = evaluate(proteins, dw.states, dw.A, dw.B)
 
 
 def benchmark(dw: DataWrapper, samples, n, lr):
@@ -31,8 +35,8 @@ def benchmark(dw: DataWrapper, samples, n, lr):
             learning_rate=lr,
         )
 
-        print("\n--- Self-consistency test (Viterbi) ---")
-        viterbi, v_scores, v_overall = evaluate(dw.test, dw.states, dw.A, dw.B)
+        print("\n--- Evaluate (Viterbi) ---")
+        v_scores, v_overall = evaluate(dw.test, dw.states, dw.A, dw.B)
         protein = dw.proteins[0]
         labeling, log_prob = decode(protein, dw.states, dw.A, dw.B)
         labels[protein.name] = labeling

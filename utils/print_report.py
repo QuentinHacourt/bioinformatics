@@ -24,7 +24,7 @@ def print_report(
 
 
 def print_viterbi(data: dict[str, int], overall):
-    report = "\n=== Self-consistency test (Viterbi) ===\n"
+    report = "\n=== Evaluate (Viterbi) ===\n"
     for protein, score in data.items():
         report += f"{protein}       accuracy    {score:.2f}%\n"
 
@@ -32,7 +32,6 @@ def print_viterbi(data: dict[str, int], overall):
     print(report)
     with open(FILENAME, "a", encoding="utf-8") as f:
         f.write(report)
-
 
 def print_labels(protein: Protein, labels):
     report = f"""{protein.name}

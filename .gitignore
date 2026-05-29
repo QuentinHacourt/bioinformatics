@@ -210,3 +210,13 @@ output/
 *.txt
 *.xml
 *.csv
+
+*.aux
+*.bbl
+*.bcf
+*.fdb_latexmk
+*.fls
+*.out
+*.pdf
+*.synctex.gz
+*.blg
