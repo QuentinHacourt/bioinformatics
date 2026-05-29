@@ -4,17 +4,23 @@
  "template"
  (lambda ()
    (TeX-add-to-alist 'LaTeX-provided-class-options
-                     '(("LTJournalArticle" "	a4paper" "	10pt" "	unnumberedsections" "	twoside" "")))
+                     '(("LTJournalArticle" "	a4paper" "	10pt" "	unnumberedsections" "	twoside" "" "	11pt")))
    (TeX-add-to-alist 'LaTeX-provided-package-options
-                     '(("float" "")))
+                     '(("amsmath" "") ("appendix" "toc" "page") ("float" "")))
    (TeX-run-style-hooks
     "latex2e"
     "LTJournalArticle"
     "LTJournalArticle10"
+    "amsmath"
+    "appendix"
     "float")
    (LaTeX-add-labels
+    "fig:betabarrel"
     "tab:dataset"
-    "fig:hmm_schematic")
+    "tab:testset"
+    "fig:hmm_schematic"
+    "eq:1"
+    "eq:2")
    (LaTeX-add-bibliographies
     "sample"))
  :latex)

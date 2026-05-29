@@ -22,10 +22,11 @@
 
 \documentclass[
 	a4paper, % Paper size, use either a4paper or letterpaper
-	10pt, % Default font size, can also use 11pt or 12pt, although this is not recommended
+	11pt, % Default font size, can also use 11pt or 12pt, although this is not recommended
 	unnumberedsections, % Comment to enable section numbering
 	twoside, % Two side traditional mode where headers and footers change between odd and even pages, comment this option to make them fixed
-]{LTJournalArticle}
+  ]{LTJournalArticle}
+\usepackage{amsmath}
 \usepackage[toc,page]{appendix}
 \addbibresource{sample.bib} % BibLaTeX bibliography file
 
@@ -53,7 +54,8 @@
 % Full-width abstract
 \renewcommand{\maketitlehookd}{%
 	\begin{abstract}
-		\noindent 
+		\noindent
+    This article is a reimplementation of a Hidden Markov Model that is capable of predicting the transmembrane regions in a integral membrane protein. To do so we have made use of the forward-backward algorithm as well as a modified version of the same algorithm. Finally the most probable labels were decided using the Viterbi algorithm. While the method is promising, the final test, which involved testing our model on previously unseen data, seems to be inconsistent. While we sometimes saw great results, it can also be very bad at predicting labels.
 	\end{abstract}
 }
 
@@ -69,29 +71,37 @@
 
 \section{Introduction}
 
-Integral membrane proteins are proteins that cannot be detached from a biological membrane. TODO: BRON (boek) For example they can be found on the outer membrane of bacteria. There are two structural classes of integral membrane proteins:
+
+Integral membrane proteins are proteins that cannot be detached from a biological membrane. \cite{alberts_molecular_2007} For example they can be found on the outer membrane of bacteria. There are two structural classes of integral membrane proteins:
 
 \begin{itemize}
         \item{$\alpha$-helical}
         \item{$\beta$-barrel}
 \end{itemize}
 
-Those two demonstrate different physiochemical characteristics, as well as different structure and localization. BRONBRONBRON Trans membrane segment prediction is well studied when it comes to $\alpha$-helical proteins, but still actively researched on the $\beta$-barrel side. BRONBRONBRON We tried implementing a method to predict the structure of such a $\beta$-barrel protein. This method is based on a hidden Markov model. BRONBRONBRON This method should be capable of predicting the transmembrane beta strands of gram-negative bacteria and discriminating those from water-soluble  proteins in large datastets.
+Those two demonstrate different physiochemical characteristics, as well as different structure and localization. \cite{bagos_hidden_2004} Trans membrane segment prediction is well studied when it comes to $\alpha$-helical proteins, but still actively researched on the $\beta$-barrel side. \cite{bagos_hidden_2004} We tried implementing a method to predict the structure of such a $\beta$-barrel protein. This method is based on a hidden Markov model. \cite{bagos_hidden_2004} This method should be capable of predicting the transmembrane beta strands of gram-negative bacteria and discriminating those from water-soluble  proteins in large datastets.
 
-Bacteria can be devided into two groups: Gram-positive and Gram-negative bacteria. The Gram negative bacteria are distinguished by the fact that they do not retain the crystal violet stain used in the Gram staining method of bacterial differentiation. Their defining characteristic is that their cell envelope consists of a thin peptidoglycan cell wall sandwitched between an inner cytoplasmic membrane and an outer membrane. This outer membrane acts as a protective barrier against numerous antibiotics (including penicillin) and detergents produced by animals as part of their innate immune system. Many pathogens are Gram-negative bacteria.
+Bacteria can be devided into two groups: Gram-positive and Gram-negative bacteria. The Gram negative bacteria are distinguished by the fact that they do not retain the crystal violet stain used in the Gram staining method of bacterial differentiation. Their defining characteristic is that their cell envelope consists of a thin peptidoglycan cell wall sandwitched between an inner cytoplasmic membrane and an outer membrane. This outer membrane acts as a protective barrier against numerous antibiotics (including penicillin) and detergents produced by animals as part of their innate immune system. Many pathogens are Gram-negative bacteria. \cite{bagos_hidden_2004}
 
-$\beta$-barrel proteins are often situated in the outer membrane of Gram-negative bacteria. These proteins perform a wide variety of functions such as, active ions transport, passive nutrient uptake, membrane anchoring, adhesion and catalytic activity.
+$\beta$-barrel proteins are often situated in the outer membrane of Gram-negative bacteria. These proteins perform a wide variety of functions such as, active ions transport, passive nutrient uptake, membrane anchoring, adhesion and catalytic activity. \cite{bagos_hidden_2004}
 
-It is no surprise, knowing all of this, that $\beta$-barrel proteins attract an increased medical interest. Transmembrane segment prediciton of $\beta$-barrel proteins would also help us understand how proteins work in general.
+ \begin{figure}
+    \includegraphics[width=\linewidth]{1UYN.png}
+    \caption{A beta-barrel (1UYN)}
+    \label{fig:betabarrel}
+\end{figure}
 
+It is no surprise, knowing all of this, that $\beta$-barrel proteins attract an increased medical interest. Transmembrane segment prediciton of $\beta$-barrel proteins would also help us understand how proteins work in general. \cite{bagos_hidden_2004}
 
-
-
-
+The difficulty when it comes to predicting $\beta$-barrel proteins lies in the lack of a clear pattern in the $\beta$-barrel membrane spanning strands. Discrimination of transmembrane strands from other $\beta$-strands in water-soluble proteins is even more difficult the reason being that those two categories share similar features. \cite{bagos_hidden_2004}
 
 \section{Materials and Methods}
 
 \subsection{Training and Test Data}
+
+We used the dataset as described in \cite{bagos_hidden_2004}, you can see which proteins were used in Table~\ref{tab:dataset}. To run our code, we have downloaded the data of the proteins in xml format from \cite{reserved_unitmp_nodate}. These xml files contain information such as the amino acid sequence and the segment regions of a protein.
+
+We have selected a few other amino acids for testing purposes. These were used to test our model after the training and testing cycle was done, to see how well it worked on unknown proteins. These selected proteins can be seen in Table~\ref{tab:testset}.
 
 \begin{table*}
 	\caption{The dataset of outer membrane proteins used for training and testing of the Hidden Markov Model~\cite{bagos_hidden_2004}}
@@ -135,23 +145,80 @@ It is no surprise, knowing all of this, that $\beta$-barrel proteins attract an 
 
 \subsection{Hidden Markov Model}
 
+A Hidden Markov Model (HMM), in our case, is used to learn a relationship or detect a pattern between the amino acid sequence of a protein and labelings. In our case the labelings represent the amino acid being part of the transmembrane strand, intra- or extracellular. Given an amino acid sequence $$\mathbf{x} = x_1, x_2 , ... , x_L$$ and a labeling sequence $$\mathbf{y} = y_1,y_2,...,y_L$$. Figure~\ref{fig:hmm_schematic} is a schematic representation of the model we have used as described in \cite{bagos_hidden_2004}. Our figure differs slightly from the one in \cite{bagos_hidden_2004} since they allowed transitions between N-terminal to all upper inner ladder states as well as the aromatic belt directly. This makes it so that the first internal strand can be shorter than six steps long. The remaining transitions we kept identical.
+
+The first step in hidden markov model is estimating our initial values. This consists of three parts: initial, transition and emission distributions. The initial distributions counts how many proteins start with an ``I'' (inner), ``O'' (outer) or ``T'' (transmembrane) strand. This is trivial in our case since all proteins start with an ``I''. The transition matrix $A[i,j]$ gives a probability distribution that indicates how probable it is moving from a state $i$ to a state $j$. The emission matrix $B[a,i]$ on the other hand says something about the probability of observing a symbol $a$ (amino acid) in a certain state $i$.
+
 \begin{figure*}[h] % Two column figure (notice the starred environment)
 	\includegraphics[width=\linewidth]{Full_schematic.png}
-	\caption{Visual and slightly adapted architecture representation of the HMM. This HMM consists of three submodels that each models a certain part of the protein sequence. The color coding of this representation is according to the original paper.}
+	\caption{Visual and slightly adapted architecture representation of the HMM. This HMM consists of three submodels that each models a certain part of the protein sequence. The color coding of this representation is according to the original paper. \cite{bagos_hidden_2004}}
 	\label{fig:hmm_schematic}
 \end{figure*}
 
 
-\subsubsection{Training} 
+\subsubsection{Training}
+
+After estimating the initial distribution, the transition and emission matrices we provide these to the training procedure \texttt{CML\_train()}. What the procedure \texttt{CML\_train()} tries to accomplish is to compute the equation~\ref{eq:1}.
+
+\begin{equation}
+\label{eq:1}
+\hat{\theta}_{CML} = \underset{\theta}{\arg \max} P(y | x,\theta) = \underset{\theta}{\arg \max} \frac{P(x,y|\theta)}{P(x|\theta)}
+\end{equation}
+
+
+In order to evaluate $P(x|\theta)$, we use the forward-backward algorithm. This forward-backward algorithm works in two passes. A forward and a backward pass. In the forward pass, it calculates the probabilities of observing the sequence until a certain point $t$ in time and being in a certain state $i$ at that time $t$ given a model $\theta$. The backward pass calculates on the other hand the probabilities from the observation sequence from point $t+1$ in time, and being in a state $i$ at time $t$
+
+The other part of the fraction, $P(x,y|\theta)$, is calculated by using a modified version of the forward-backward algorithm, which takes the constraints we set on our model (see figure~\ref{fig:hmm_schematic}).
+
+In practice, however, adding up so many small numbers results in a zero result, to compensate for this we worked in log space for the probabilities. \cite{krogh_hidden_1994}
+
+\begin{equation}
+\label{eq:2}
+\mathcal{L} = - \log \frac{P(x,y|\theta)}{P(x|\theta)} = -logP(x,y|\theta) - logP(x|\theta)
+\end{equation}
+
+
+
+
 \subsubsection{Decoding}
+
+To find the most probable state sequence in our newly trained HMM we used Viterbi, which is a dynamic programming method. Given a sequence of $T$ observations which are in our case a sequence of amino acids. Finding the most probable state sequence that will map to the ``predicted sequence'' with alphabet ``O'', ``I'' and ``T'' for outer, inner and transmembrane respectively. \cite{rabiner_tutorial_1989}
+
+The algorithm takes as input our transition, emission, initial distribution and an observational sequence which is in our case an amino acid sequence.
+
+\begin{itemize}
+  \item{\texttt{dp}: the maximum probability of ending up in a state $s$, coming from an observation $t$.}
+  \item{\texttt{backptr}}: keeps track of the state we come from when we are in state $s$.
+\end{itemize}
+
+By iterating through the sequence, you update the matrices with the maximum probabilities and the previous states. When backtracking, the algorithm follows the path with the highest probabilities and keeping track of the states that you encounter.
+
 
 %------------------------------------------------
 
 \section{Results}
 
+Our code was ran using 14 proteins to train and test on. Our sample size was set to five, at every sample we split our data into two equaly sized lists of randomly selected proteins so that no protein would be in both lists, one for training and one for testing just like it was done in \cite{bagos_hidden_2004}. Our hidden markov model was then trained for thirty iterations or until convergence was reached. We have deliberately set this amount of iterations to a lower number than in \cite{bagos_hidden_2004}, because from practical experience, it turned out that training less on our test sets but resampling more regularly helped to get better scores. We also have found that a learning rate of about $0.05$ was optimal.
+
+While we haven't reached accuracies as high as in \cite{bagos_hidden_2004}, our method could train models to predict labels with an accuracy of up to $70.75\%$. Since this technique is based on randomness, it might be higher or it might be lower. We have observed that we can reliably get results above $60\%$. Very rarely did we get results under $50\%$.
+
+Our final test was on a set of selected proteins, see Table~\ref{tab:testset}. These were proteins were the model was not trained on.
+
+The results of all our tests can be seen in the file located at \texttt{output/report.txt}.
+
+
+
 %------------------------------------------------
 
 \section{Discussion}
+
+While the method described in \cite{bagos_hidden_2004} is promising, it is, as said by the authors, very sensitive to mislabeling. We experienced that first hand and had to re-label some of our given proteins. Originally we did not know that the data labeling wasn't consistent in our xml files, which made us lose a lot of time.
+
+The paper \cite{bagos_hidden_2004} gives us a very useful schema of how the model should be constructed, however, the N-terminal needs to be connected to much more nodes than indicated on the schema. This is written in the paper, but, using the schema as a reference while coding, we ended up having a wrong model which was terrible at predicting the labels.
+
+While testing our trained model on new proteins, we have experienced that it can sometimes predict labels with an above 80\% accuracy, but often it ends up lower than 20\%. From that we can conlude that our model, while it is good at predicting labels on proteins it was trained on, has difficulties with unseen data.
+
+One advantage of this method is that training is not that computationally intensive. It can be ran on a laptop in a few seconds and only needs a few datapoints (in our case fourteen).
 
 %----------------------------------------------------------------------------------------
 %	 REFERENCES
